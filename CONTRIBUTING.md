@@ -81,6 +81,46 @@ py-mono/
 4. Add README.md with usage examples
 5. Add tests in `tests/test_your_package.py`
 
+## Code of Conduct
+
+- Be respectful and inclusive
+- Provide constructive feedback
+- Focus on the code, not the person
+- Help create a welcoming community
+
+## Package-Specific Guidelines
+
+### py-ai (LLM API)
+- New providers must implement the Provider interface
+- Include both sync and async methods
+- Add usage tracking
+- Document model names and capabilities
+
+### py-agent-core (Agent Runtime)
+- Maintain backward compatibility
+- Extensions must be sandboxed
+- Sessions must be serializable
+- Events should be documented
+
+### py-messenger (Multi-Platform)
+- New adapters must implement MessagePlatform
+- Convert to UniversalMessage format
+- Handle platform-specific features gracefully
+- Test with actual platform APIs
+
+## Release Process
+
+1. Update version in `pyproject.toml`
+2. Update CHANGELOG.md
+3. Run full test suite
+4. Create GitHub release
+5. Publish to PyPI (if applicable)
+
 ## Questions?
 
-Feel free to open an issue for any questions or concerns!
+- 💬 Open an issue for questions
+- 🐛 Report bugs via GitHub Issues
+- 💡 Suggest features via Discussions
+- 📧 Contact maintainers for security issues
+
+Feel free to contribute! Every improvement helps. 🙏
