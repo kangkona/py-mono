@@ -41,12 +41,32 @@ class LLM:
         from .providers.anthropic import AnthropicProvider
         from .providers.google import GoogleProvider
         from .providers.azure import AzureOpenAIProvider
+        from .providers.groq import GroqProvider
+        from .providers.mistral import MistralProvider
+        from .providers.openrouter import OpenRouterProvider
+        from .providers.bedrock import BedrockProvider
+        from .providers.xai import XAIProvider
+        from .providers.cerebras import CerebrasProvider
+        from .providers.cohere import CohereProvider
+        from .providers.perplexity import PerplexityProvider
+        from .providers.deepseek import DeepSeekProvider
+        from .providers.together import TogetherProvider
 
         provider_map = {
             "openai": OpenAIProvider,
             "anthropic": AnthropicProvider,
             "google": GoogleProvider,
             "azure": AzureOpenAIProvider,
+            "groq": GroqProvider,
+            "mistral": MistralProvider,
+            "openrouter": OpenRouterProvider,
+            "bedrock": BedrockProvider,
+            "xai": XAIProvider,
+            "cerebras": CerebrasProvider,
+            "cohere": CohereProvider,
+            "perplexity": PerplexityProvider,
+            "deepseek": DeepSeekProvider,
+            "together": TogetherProvider,
         }
 
         provider_class = provider_map.get(self.config.provider)

@@ -11,6 +11,8 @@ from .skills import Skill, SkillManager
 from .context import ContextManager
 from .prompts import PromptTemplate, PromptManager
 from .message_queue import MessageQueue, MessageType, QueuedMessage
+from .export import SessionExporter
+from .share import GistSharer
 
 __version__ = "0.0.1"
 
@@ -37,4 +39,6 @@ __all__ = [
     "MessageQueue",
     "MessageType",
     "QueuedMessage",
+    "SessionExporter",
+    "GistSharer",
 ]

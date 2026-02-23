@@ -292,6 +292,14 @@ Tools: {len(self.agent.registry)}
         elif cmd.startswith("/queue"):
             self._show_queue()
 
+        elif cmd.startswith("/export"):
+            parts = cmd.split(maxsplit=1)
+            filename = parts[1] if len(parts) > 1 else None
+            self._export_session(filename)
+
+        elif cmd.startswith("/share"):
+            self._share_session()
+
         elif cmd.startswith("/"):
             # Check if it's a prompt template
             template_name = cmd.lstrip("/").split()[0]
@@ -491,6 +499,8 @@ Cost: ${info['metadata'].get('cost', 0.0):.4f}
 /tree       - Show conversation tree
 /fork [name] - Fork session from current point
 /compact [instructions] - Compact old messages
+/export [file] - Export session to HTML
+/share      - Share session via GitHub Gist
 /reload     - Reload extensions, skills, prompts, context
 
 **Skills & Extensions:**
@@ -599,6 +609,77 @@ Use /queue to see queued messages.
         
         # Display response
         self.ui.assistant(response.content)
+
+    def _export_session(self, filename: Optional[str]):
+        """Export session to HTML."""
+        if not self.session:
+            self.ui.error("No session to export")
+            return
+
+        from py_agent_core import SessionExporter
+        from pathlib import Path
+
+        # Determine output path
+        if filename:
+            output_path = Path(filename)
+        else:
+            # Auto-generate
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_path = Path(f"{self.session.name}_{timestamp}.html")
+
+        try:
+            exported = SessionExporter.export_to_html(
+                self.session, output_path, title=self.session.name
+            )
+            self.ui.system(f"✓ Exported to: {exported}")
+            self.ui.system(f"  Open in browser: file://{exported.absolute()}")
+        except Exception as e:
+            self.ui.error(f"Export failed: {e}")
+
+    def _share_session(self):
+        """Share session via GitHub Gist."""
+        if not self.session:
+            self.ui.error("No session to share")
+            return
+
+        import os
+        from py_agent_core import GistSharer
+
+        # Get GitHub token
+        github_token = os.getenv("GITHUB_TOKEN")
+
+        if not github_token:
+            self.ui.error("GITHUB_TOKEN not set")
+            self.ui.system("Get token from: https://github.com/settings/tokens")
+            self.ui.system("Set: export GITHUB_TOKEN=your_token")
+            return
+
+        try:
+            sharer = GistSharer(github_token)
+
+            self.ui.system("Uploading to GitHub Gist...")
+
+            info = sharer.share_session(
+                self.session, public=False, description=f"py-mono: {self.session.name}"
+            )
+
+            self.ui.system(f"✓ Shared as private gist!")
+            self.ui.panel(
+                f"""
+**Gist Created**
+
+URL: {info['url']}
+ID: {info['id']}
+Public: {info['public']}
+
+Share this URL to give others access.
+            """,
+                title="Shared",
+            )
+
+        except Exception as e:
+            self.ui.error(f"Share failed: {e}")
 
     def _show_queue(self):
         """Show message queue status."""
