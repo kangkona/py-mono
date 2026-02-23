@@ -10,6 +10,7 @@ from rich.console import Console
 from .models import AgentState, ToolCall, ToolResult
 from .registry import ToolRegistry
 from .tools import Tool
+from .message_queue import MessageQueue
 
 
 class Agent:
@@ -56,6 +57,7 @@ class Agent:
             self.history.append(Message(role="system", content=system_prompt))
 
         self.console = Console() if verbose else None
+        self.message_queue = MessageQueue()
 
     def _log(self, message: str, style: str = ""):
         """Log message if verbose."""
@@ -70,11 +72,12 @@ class Agent:
         """
         self.registry.register(tool)
 
-    def run(self, message: str) -> Response:
+    def run(self, message: str, check_queue: bool = True) -> Response:
         """Run agent with a user message.
 
         Args:
             message: User message
+            check_queue: Check message queue for interrupts
 
         Returns:
             Agent response
@@ -149,12 +152,28 @@ class Agent:
                         }
                     ))
                 
+                # Check for steering messages after tool execution
+                if check_queue and self.message_queue.has_steering():
+                    steering = self.message_queue.get_steering_messages()
+                    for msg in steering:
+                        self._log(f"[yellow]⚡ Steering: {msg.content}[/yellow]")
+                        self.history.append(Message(role="user", content=msg.content))
+                
                 # Continue loop to get final response
                 continue
             else:
                 # No tool calls, we have final response
                 self.history.append(Message(role="assistant", content=response.content))
                 self._log(f"[bold green]Agent:[/bold green] {response.content}")
+                
+                # Check for follow-up messages
+                if check_queue and self.message_queue.has_followup():
+                    followup = self.message_queue.get_followup_messages()
+                    if followup:
+                        # Process first follow-up recursively
+                        self._log(f"[cyan]→ Follow-up: {followup[0].content}[/cyan]")
+                        return self.run(followup[0].content, check_queue=True)
+                
                 return response
 
         # Max iterations reached

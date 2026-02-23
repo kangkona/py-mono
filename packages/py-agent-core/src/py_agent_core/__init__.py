@@ -10,6 +10,7 @@ from .extensions import ExtensionAPI, ExtensionManager
 from .skills import Skill, SkillManager
 from .context import ContextManager
 from .prompts import PromptTemplate, PromptManager
+from .message_queue import MessageQueue, MessageType, QueuedMessage
 
 __version__ = "0.0.1"
 
@@ -33,4 +34,7 @@ __all__ = [
     "ContextManager",
     "PromptTemplate",
     "PromptManager",
+    "MessageQueue",
+    "MessageType",
+    "QueuedMessage",
 ]

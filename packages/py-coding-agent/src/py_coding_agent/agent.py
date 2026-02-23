@@ -147,6 +147,12 @@ When generating code, provide clean, well-documented, production-ready code.
 
         try:
             while True:
+                # Show queue status if messages queued
+                if self.agent.message_queue:
+                    queue_status = self.agent.message_queue.get_status()
+                    if "Queued" in queue_status:
+                        self.ui.system(f"📬 {queue_status}")
+
                 # Get user input
                 from py_tui import Prompt
                 prompt = Prompt()
@@ -159,17 +165,42 @@ When generating code, provide clean, well-documented, production-ready code.
                 if user_input.startswith("/"):
                     self._handle_command(user_input)
                     continue
+                
+                # Check for queue commands
+                if user_input.startswith("!"):
+                    # !message = steering (interrupt)
+                    steering_msg = user_input.lstrip("!")
+                    self.agent.message_queue.add_steering(steering_msg)
+                    self.ui.system(f"⚡ Queued steering message: {steering_msg[:50]}...")
+                    continue
+                
+                if user_input.startswith(">>"):
+                    # >>message = follow-up (wait until done)
+                    followup_msg = user_input.lstrip(">").strip()
+                    self.agent.message_queue.add_followup(followup_msg)
+                    self.ui.system(f"📝 Queued follow-up message: {followup_msg[:50]}...")
+                    continue
 
                 # Display user message
                 self.ui.user(user_input)
 
-                # Get agent response
+                # Get agent response (with queue support)
                 response = self.agent.run(user_input)
 
                 # Display response
                 self.ui.assistant(response.content)
+                
+                # Add to session
+                if self.session:
+                    self.session.add_message("user", user_input)
+                    self.session.add_message("assistant", response.content)
 
         except KeyboardInterrupt:
+            # Check if there are queued messages
+            if self.agent.message_queue:
+                cleared = self.agent.message_queue.clear()
+                if cleared:
+                    self.ui.system(f"\nCleared {len(cleared)} queued messages")
             self.ui.system("\nGoodbye!")
         except EOFError:
             self.ui.system("\nGoodbye!")
@@ -257,6 +288,9 @@ Tools: {len(self.agent.registry)}
 
         elif cmd.startswith("/config"):
             self._show_config()
+
+        elif cmd.startswith("/queue"):
+            self._show_queue()
 
         elif cmd.startswith("/"):
             # Check if it's a prompt template
@@ -447,6 +481,7 @@ Cost: ${info['metadata'].get('cost', 0.0):.4f}
 /clear      - Clear conversation
 /status     - Agent status
 /config     - Show configuration
+/queue      - Show message queue
 /files      - List workspace files
 
 **Session Management:**
@@ -472,14 +507,24 @@ Cost: ${info['metadata'].get('cost', 0.0):.4f}
 • SYSTEM.md - Override system prompt
 • APPEND_SYSTEM.md - Append to system prompt
 
+**Message Queue:**
+
+While agent is working, you can queue messages:
+  !message     - Steering (interrupt after current tool)
+  >>message    - Follow-up (wait until agent finishes)
+
+Use /queue to see queued messages.
+
 **Features:**
 
 • Sessions auto-save to .sessions/
 • Extensions auto-load from .agents/extensions/
 • Skills auto-discover from .agents/skills/
 • Prompts auto-load from .agents/prompts/
+• Context auto-load from AGENTS.md, SYSTEM.md
 • Use /tree to navigate conversation history
 • Use /fork to create alternate branches
+• Queue messages with ! or >>
         """
         self.ui.panel(help_text, title="Help")
 
@@ -554,6 +599,41 @@ Cost: ${info['metadata'].get('cost', 0.0):.4f}
         
         # Display response
         self.ui.assistant(response.content)
+
+    def _show_queue(self):
+        """Show message queue status."""
+        queue = self.agent.message_queue
+        
+        if not queue:
+            self.ui.system("Message queue is empty")
+            self.ui.system("\nQueue messages while agent is working:")
+            self.ui.system("  !message    - Steering (interrupt after current tool)")
+            self.ui.system("  >>message   - Follow-up (wait until done)")
+            return
+        
+        queue_text = f"**Message Queue** ({len(queue)} messages)\n\n"
+        
+        steering = [m for m in queue.queue if m.type.value == "steering"]
+        followup = [m for m in queue.queue if m.type.value == "followup"]
+        
+        if steering:
+            queue_text += "**Steering Messages** (interrupt):\n"
+            for i, msg in enumerate(steering, 1):
+                preview = msg.content[:60]
+                queue_text += f"{i}. {preview}...\n"
+            queue_text += "\n"
+        
+        if followup:
+            queue_text += "**Follow-up Messages** (after completion):\n"
+            for i, msg in enumerate(followup, 1):
+                preview = msg.content[:60]
+                queue_text += f"{i}. {preview}...\n"
+        
+        queue_text += f"\n**Modes**:\n"
+        queue_text += f"• Steering: {queue.steering_mode}\n"
+        queue_text += f"• Follow-up: {queue.followup_mode}"
+        
+        self.ui.panel(queue_text, title="Queue")
 
     def _show_config(self):
         """Show current configuration."""
