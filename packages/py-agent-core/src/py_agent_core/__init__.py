@@ -5,6 +5,7 @@ from .tools import Tool, tool
 from .models import AgentState, ToolCall, ToolResult
 from .registry import ToolRegistry
 from .session import Session, SessionTree, SessionEntry
+from .session_manager import SessionManager, SessionInfo
 from .extensions import ExtensionAPI, ExtensionManager
 from .skills import Skill, SkillManager
 from .context import ContextManager
@@ -23,6 +24,8 @@ __all__ = [
     "Session",
     "SessionTree",
     "SessionEntry",
+    "SessionManager",
+    "SessionInfo",
     "ExtensionAPI",
     "ExtensionManager",
     "Skill",

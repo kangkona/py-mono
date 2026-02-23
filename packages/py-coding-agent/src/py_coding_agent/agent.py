@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from py_ai import LLM
-from py_agent_core import Agent, Session, ExtensionManager, SkillManager, ContextManager, PromptManager
+from py_agent_core import Agent, Session, ExtensionManager, SkillManager, ContextManager, PromptManager, SessionManager
 from py_tui import ChatUI
 
 from .tools import FileTools, CodeTools, ShellTools
@@ -236,6 +236,9 @@ Tools: {len(self.agent.registry)}
         elif cmd.startswith("/session"):
             self._show_session_info()
 
+        elif cmd.startswith("/sessions"):
+            self._list_sessions()
+
         elif cmd.startswith("/skill:"):
             skill_name = cmd.split(":", 1)[1]
             self._invoke_skill(skill_name)
@@ -248,6 +251,9 @@ Tools: {len(self.agent.registry)}
 
         elif cmd.startswith("/prompts"):
             self._list_prompts()
+
+        elif cmd.startswith("/reload"):
+            self._reload_resources()
 
         elif cmd.startswith("/"):
             # Check if it's a prompt template
@@ -322,6 +328,24 @@ Tools: {len(self.agent.registry)}
         self.ui.system(f"✓ Compacted: {before} entries → {len(compacted)} entries")
         if instructions:
             self.ui.system(f"  Instructions: {instructions}")
+
+    def _list_sessions(self):
+        """List available sessions."""
+        session_mgr = SessionManager(self.workspace)
+        sessions = session_mgr.list_sessions(limit=20)
+        
+        if not sessions:
+            self.ui.system("No sessions found")
+            self.ui.system(f"Sessions are saved to: {self.workspace}/.sessions/")
+            return
+        
+        sessions_text = session_mgr.format_session_list(sessions)
+        
+        if len(sessions) == 20:
+            sessions_text += "\n\n... (showing most recent 20)"
+        
+        self.ui.panel(sessions_text, title=f"Available Sessions ({len(sessions)})")
+        self.ui.system("Use `py-code --resume` to select a session")
 
     def _show_session_info(self):
         """Show session information."""
@@ -423,10 +447,12 @@ Cost: ${info['metadata'].get('cost', 0.0):.4f}
 
 **Session Management:**
 
-/session    - Show session info
+/session    - Show current session info
+/sessions   - List all available sessions
 /tree       - Show conversation tree
 /fork [name] - Fork session from current point
 /compact [instructions] - Compact old messages
+/reload     - Reload extensions, skills, prompts, context
 
 **Skills & Extensions:**
 
@@ -487,30 +513,86 @@ Cost: ${info['metadata'].get('cost', 0.0):.4f}
         # Parse arguments (simple key=value parsing)
         kwargs = {}
         if args:
-            parts = args.split()
+            # Support both space and comma separated
+            parts = args.replace(",", " ").split()
             for part in parts:
                 if "=" in part:
                     key, value = part.split("=", 1)
+                    # Remove quotes if present
+                    value = value.strip("\"'")
                     kwargs[key] = value
 
-        # Show template info
+        # Show template info if no args and has variables
         if template.variables and not kwargs:
             vars_text = "**Template Variables**:\n\n"
             for var in template.variables:
                 vars_text += f"• {var}\n"
-            vars_text += f"\nUsage: /{template_name} {' '.join(f'{v}=value' for v in template.variables)}"
+            vars_text += f"\n**Usage**: `/{template_name} {' '.join(f'{v}=value' for v in template.variables)}`"
+            vars_text += f"\n\n**Example**: `/{template_name} {template.variables[0]}=\"example\"`"
             self.ui.panel(vars_text, title=f"Template: {template_name}")
             return
 
         # Render template
         rendered = template.render(**kwargs)
         
-        # Show rendered prompt
-        self.ui.panel(rendered, title=f"Prompt: {template_name}")
-        self.ui.system("Prompt loaded. Press Enter to send it, or modify it.")
+        # Display nicely
+        self.ui.panel(rendered, title=f"Expanded: /{template_name}")
         
-        # In a real implementation, this would put the rendered text in the input buffer
-        # For now, we just display it
+        # Automatically send to agent
+        self.ui.system("Sending prompt to agent...")
+        
+        # Add to session
+        if self.session:
+            self.session.add_message("user", rendered)
+        
+        # Get response
+        response = self.agent.run(rendered)
+        
+        # Display response
+        self.ui.assistant(response.content)
+
+    def _reload_resources(self):
+        """Reload extensions, skills, prompts, and context."""
+        reloaded = []
+
+        # Reload extensions
+        if self.extension_manager:
+            # Clear and reload
+            old_count = len(self.extension_manager.extensions)
+            self.extension_manager.extensions.clear()
+            self._load_extensions()
+            new_count = len(self.extension_manager.extensions)
+            reloaded.append(f"Extensions: {new_count} (was {old_count})")
+
+        # Reload skills
+        if self.skill_manager:
+            old_count = len(self.skill_manager)
+            self.skill_manager.skills.clear()
+            self.skill_manager.discover_skills([])
+            new_count = len(self.skill_manager)
+            reloaded.append(f"Skills: {new_count} (was {old_count})")
+
+        # Reload prompts
+        if self.prompt_manager:
+            old_count = len(self.prompt_manager)
+            self.prompt_manager.templates.clear()
+            self.prompt_manager.discover_prompts([])
+            new_count = len(self.prompt_manager)
+            reloaded.append(f"Prompts: {new_count} (was {old_count})")
+
+        # Reload system prompt (context files)
+        new_prompt = self._get_system_prompt()
+        # Update agent's system prompt
+        if self.agent.history and self.agent.history[0].role == "system":
+            self.agent.history[0].content = new_prompt
+            reloaded.append("Context: Reloaded")
+
+        if reloaded:
+            self.ui.system("✓ Reloaded resources:")
+            for item in reloaded:
+                self.ui.system(f"  • {item}")
+        else:
+            self.ui.system("No resources to reload")
 
     def _show_status(self):
         """Show comprehensive status."""

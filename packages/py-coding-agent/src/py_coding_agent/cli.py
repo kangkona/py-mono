@@ -48,14 +48,44 @@ def main(
     # Handle session loading
     session_path = None
     if resume or continue_session:
-        # Find last session
-        sessions_dir = workspace / ".sessions"
-        if sessions_dir.exists():
-            session_files = list(sessions_dir.glob("*.jsonl"))
-            if session_files:
-                # Get most recent
-                session_path = max(session_files, key=lambda p: p.stat().st_mtime)
-                console.print(f"[cyan]Resuming:[/cyan] {session_path.name}")
+        from py_agent_core import SessionManager
+        
+        session_mgr = SessionManager(workspace)
+        sessions = session_mgr.list_sessions(limit=10)
+        
+        if not sessions:
+            console.print("[yellow]No previous sessions found[/yellow]")
+        elif continue_session or len(sessions) == 1:
+            # Auto-continue most recent
+            session_path = sessions[0].path
+            console.print(f"[cyan]Continuing:[/cyan] {sessions[0].session_name}")
+        else:
+            # Show selection UI
+            console.print("[cyan]Recent sessions:[/cyan]\n")
+            console.print(session_mgr.format_session_list(sessions))
+            console.print()
+            
+            from py_tui import Prompt
+            prompt = Prompt()
+            
+            try:
+                choice = prompt.ask(
+                    "Select session (number or name)",
+                    default="1"
+                )
+                
+                # Parse choice
+                if choice.isdigit() and 1 <= int(choice) <= len(sessions):
+                    session_path = sessions[int(choice) - 1].path
+                else:
+                    # Try by name
+                    found = session_mgr.find_session(choice)
+                    if found:
+                        session_path = found
+                    else:
+                        console.print(f"[yellow]Session '{choice}' not found, starting new[/yellow]")
+            except (KeyboardInterrupt, EOFError):
+                console.print("[yellow]Starting new session[/yellow]")
 
     # Create and run agent
     agent = CodingAgent(

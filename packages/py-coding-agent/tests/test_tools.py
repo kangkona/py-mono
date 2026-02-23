@@ -192,3 +192,62 @@ def test_shell_tools_git_diff_with_path():
     
     result = tools.git_diff("README.md")
     assert isinstance(result, str)
+
+
+def test_file_tools_grep(temp_workspace):
+    """Test grep_files tool."""
+    tools = FileTools(str(temp_workspace))
+    
+    # Create test files
+    (temp_workspace / "file1.txt").write_text("Hello world\nFoo bar\nHello again")
+    (temp_workspace / "file2.txt").write_text("No match here")
+    
+    result = tools.grep_files("Hello", ".")
+    
+    assert "file1.txt" in result
+    assert "Hello world" in result
+    assert "Hello again" in result
+
+
+def test_file_tools_grep_no_match(temp_workspace):
+    """Test grep with no matches."""
+    tools = FileTools(str(temp_workspace))
+    
+    (temp_workspace / "file.txt").write_text("Nothing here")
+    
+    result = tools.grep_files("NoMatch", ".")
+    
+    assert "No matches" in result
+
+
+def test_file_tools_find(temp_workspace):
+    """Test find_files tool."""
+    tools = FileTools(str(temp_workspace))
+    
+    # Create test files
+    (temp_workspace / "test.py").write_text("code")
+    (temp_workspace / "test.txt").write_text("text")
+    subdir = temp_workspace / "subdir"
+    subdir.mkdir()
+    (subdir / "nested.py").write_text("more code")
+    
+    result = tools.find_files("*.py", ".")
+    
+    assert "test.py" in result
+    assert "nested.py" in result
+    assert "test.txt" not in result
+
+
+def test_file_tools_ls_detailed(temp_workspace):
+    """Test ls_detailed tool."""
+    tools = FileTools(str(temp_workspace))
+    
+    # Create files
+    (temp_workspace / "file.txt").write_text("content")
+    (temp_workspace / "subdir").mkdir()
+    
+    result = tools.ls_detailed(".")
+    
+    assert "file.txt" in result
+    assert "subdir" in result
+    assert "KB" in result or "<DIR>" in result
