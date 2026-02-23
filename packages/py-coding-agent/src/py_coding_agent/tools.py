@@ -92,6 +92,130 @@ class FileTools:
         """
         return self._resolve_path(path).exists()
 
+    @tool(description="Search for text in files (grep)")
+    def grep_files(self, pattern: str, path: str = ".", recursive: bool = True) -> str:
+        """Search for pattern in files.
+
+        Args:
+            pattern: Text pattern to search for
+            path: Directory or file to search in
+            recursive: Search recursively
+
+        Returns:
+            Matching lines with file names
+        """
+        import re
+        
+        search_path = self._resolve_path(path)
+        results = []
+
+        try:
+            if search_path.is_file():
+                # Search single file
+                content = search_path.read_text()
+                for i, line in enumerate(content.split("\n"), 1):
+                    if re.search(pattern, line, re.IGNORECASE):
+                        results.append(f"{search_path.name}:{i}: {line.strip()}")
+            else:
+                # Search directory
+                glob_pattern = "**/*" if recursive else "*"
+                for file_path in search_path.glob(glob_pattern):
+                    if file_path.is_file() and not file_path.name.startswith("."):
+                        try:
+                            content = file_path.read_text()
+                            for i, line in enumerate(content.split("\n"), 1):
+                                if re.search(pattern, line, re.IGNORECASE):
+                                    rel_path = file_path.relative_to(self.workspace)
+                                    results.append(f"{rel_path}:{i}: {line.strip()}")
+                        except (UnicodeDecodeError, PermissionError):
+                            continue
+        except Exception as e:
+            return f"Error searching: {e}"
+
+        if not results:
+            return f"No matches found for '{pattern}'"
+
+        # Limit results
+        if len(results) > 50:
+            return "\n".join(results[:50]) + f"\n... ({len(results) - 50} more matches)"
+
+        return "\n".join(results)
+
+    @tool(description="Find files by name pattern")
+    def find_files(self, pattern: str, path: str = ".") -> str:
+        """Find files matching pattern.
+
+        Args:
+            pattern: File name pattern (supports wildcards)
+            path: Directory to search in
+
+        Returns:
+            List of matching files
+        """
+        search_path = self._resolve_path(path)
+
+        if not search_path.is_dir():
+            return f"Error: {path} is not a directory"
+
+        results = []
+        try:
+            for file_path in search_path.rglob(pattern):
+                rel_path = file_path.relative_to(self.workspace)
+                file_type = "📁" if file_path.is_dir() else "📄"
+                size = file_path.stat().st_size if file_path.is_file() else 0
+                results.append(f"{file_type} {rel_path} ({size} bytes)")
+        except Exception as e:
+            return f"Error finding files: {e}"
+
+        if not results:
+            return f"No files found matching '{pattern}'"
+
+        return "\n".join(results)
+
+    @tool(description="List files with details (ls -la)")
+    def ls_detailed(self, path: str = ".") -> str:
+        """List files with detailed information.
+
+        Args:
+            path: Directory path
+
+        Returns:
+            Detailed file listing
+        """
+        import datetime
+
+        dir_path = self._resolve_path(path)
+
+        if not dir_path.exists():
+            return f"Error: {path} does not exist"
+
+        if not dir_path.is_dir():
+            return f"Error: {path} is not a directory"
+
+        results = []
+        try:
+            for item in sorted(dir_path.iterdir()):
+                stat = item.stat()
+                size = stat.st_size
+                mtime = datetime.datetime.fromtimestamp(stat.st_mtime)
+                mtime_str = mtime.strftime("%Y-%m-%d %H:%M")
+
+                if item.is_dir():
+                    results.append(f"📁 {item.name:<30} {mtime_str}  <DIR>")
+                else:
+                    size_kb = size / 1024
+                    results.append(
+                        f"📄 {item.name:<30} {mtime_str}  {size_kb:>8.1f} KB"
+                    )
+        except Exception as e:
+            return f"Error listing directory: {e}"
+
+        if not results:
+            return "Empty directory"
+
+        header = f"Directory: {path}\n" + "-" * 60 + "\n"
+        return header + "\n".join(results)
+
 
 class CodeTools:
     """Code generation and analysis tools."""

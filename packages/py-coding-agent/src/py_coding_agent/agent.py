@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from py_ai import LLM
-from py_agent_core import Agent, Session, ExtensionManager, SkillManager
+from py_agent_core import Agent, Session, ExtensionManager, SkillManager, ContextManager, PromptManager
 from py_tui import ChatUI
 
 from .tools import FileTools, CodeTools, ShellTools
@@ -85,6 +85,15 @@ class CodingAgent:
             if len(self.skill_manager) > 0:
                 print(f"✓ Loaded {len(self.skill_manager)} skills")
 
+        # Initialize context manager
+        self.context_manager = ContextManager(self.workspace)
+
+        # Initialize prompt manager
+        self.prompt_manager = PromptManager()
+        self.prompt_manager.discover_prompts([])
+        if len(self.prompt_manager) > 0:
+            print(f"✓ Loaded {len(self.prompt_manager)} prompt templates")
+
         # Create UI
         self.ui = ChatUI(title="Coding Agent", show_timestamps=False)
 
@@ -106,7 +115,8 @@ class CodingAgent:
 
     def _get_system_prompt(self) -> str:
         """Get system prompt for coding agent."""
-        prompt = f"""You are an expert coding assistant with access to file operations and code generation tools.
+        # Default prompt
+        default_prompt = f"""You are an expert coding assistant with access to file operations and code generation tools.
 
 Workspace: {self.workspace}
 
@@ -119,6 +129,9 @@ You can:
 Be helpful, precise, and always confirm destructive operations.
 When generating code, provide clean, well-documented, production-ready code.
 """
+
+        # Build with context files
+        prompt = self.context_manager.build_system_prompt(default_prompt)
 
         # Add skills information if available
         if self.skill_manager and len(self.skill_manager) > 0:
@@ -232,6 +245,18 @@ Tools: {len(self.agent.registry)}
 
         elif cmd.startswith("/extensions"):
             self._list_extensions()
+
+        elif cmd.startswith("/prompts"):
+            self._list_prompts()
+
+        elif cmd.startswith("/"):
+            # Check if it's a prompt template
+            template_name = cmd.lstrip("/").split()[0]
+            if self.prompt_manager and template_name in self.prompt_manager:
+                # Extract variables from rest of command
+                args_str = cmd.split(maxsplit=1)[1] if " " in cmd else ""
+                self._expand_prompt(template_name, args_str)
+                return
 
         else:
             # Try extension commands
@@ -408,16 +433,84 @@ Cost: ${info['metadata'].get('cost', 0.0):.4f}
 /skills     - List available skills
 /skill:name - Invoke a skill
 /extensions - List loaded extensions
+/prompts    - List prompt templates
+/template   - Expand a template
+
+**Context Files:**
+
+• AGENTS.md - Project instructions (auto-loaded)
+• SYSTEM.md - Override system prompt
+• APPEND_SYSTEM.md - Append to system prompt
 
 **Features:**
 
 • Sessions auto-save to .sessions/
 • Extensions auto-load from .agents/extensions/
 • Skills auto-discover from .agents/skills/
+• Prompts auto-load from .agents/prompts/
 • Use /tree to navigate conversation history
 • Use /fork to create alternate branches
         """
         self.ui.panel(help_text, title="Help")
+
+    def _list_prompts(self):
+        """List available prompt templates."""
+        if not self.prompt_manager or len(self.prompt_manager) == 0:
+            self.ui.system("No prompts found")
+            self.ui.system("Create prompts in .agents/prompts/*.md")
+            return
+
+        prompts_text = "**Available Prompt Templates**\n\n"
+        for template in self.prompt_manager.list_templates():
+            prompts_text += f"• **/{template.name}**\n"
+            if template.variables:
+                prompts_text += f"  Variables: {', '.join(template.variables)}\n"
+            # Show first line as description
+            first_line = template.content.split("\n")[0].strip("# ").strip()
+            prompts_text += f"  {first_line}\n\n"
+
+        prompts_text += "Use `/template_name` to expand a template."
+        self.ui.panel(prompts_text, title=f"Prompts ({len(self.prompt_manager)})")
+
+    def _expand_prompt(self, template_name: str, args: str):
+        """Expand a prompt template.
+
+        Args:
+            template_name: Template name
+            args: Arguments string (key=value format)
+        """
+        template = self.prompt_manager.get_template(template_name)
+        if not template:
+            self.ui.error(f"Template '{template_name}' not found")
+            return
+
+        # Parse arguments (simple key=value parsing)
+        kwargs = {}
+        if args:
+            parts = args.split()
+            for part in parts:
+                if "=" in part:
+                    key, value = part.split("=", 1)
+                    kwargs[key] = value
+
+        # Show template info
+        if template.variables and not kwargs:
+            vars_text = "**Template Variables**:\n\n"
+            for var in template.variables:
+                vars_text += f"• {var}\n"
+            vars_text += f"\nUsage: /{template_name} {' '.join(f'{v}=value' for v in template.variables)}"
+            self.ui.panel(vars_text, title=f"Template: {template_name}")
+            return
+
+        # Render template
+        rendered = template.render(**kwargs)
+        
+        # Show rendered prompt
+        self.ui.panel(rendered, title=f"Prompt: {template_name}")
+        self.ui.system("Prompt loaded. Press Enter to send it, or modify it.")
+        
+        # In a real implementation, this would put the rendered text in the input buffer
+        # For now, we just display it
 
     def _show_status(self):
         """Show comprehensive status."""
@@ -452,6 +545,14 @@ Branches: {info['branches']}
             ext_count = len(self.extension_manager.extensions)
             cmd_count = len(self.extension_manager.api.get_commands())
             status_text += f"\n**Extensions**: {ext_count} loaded, {cmd_count} commands"
+
+        if self.prompt_manager:
+            status_text += f"\n**Prompts**: {len(self.prompt_manager)} loaded"
+
+        # Show context files
+        agents_md = self.context_manager.find_context_files("AGENTS.md")
+        if agents_md:
+            status_text += f"\n**Context**: {len(agents_md)} AGENTS.md files"
 
         self.ui.panel(status_text, title="Status")
 

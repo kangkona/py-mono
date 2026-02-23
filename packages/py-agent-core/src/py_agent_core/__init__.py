@@ -7,6 +7,8 @@ from .registry import ToolRegistry
 from .session import Session, SessionTree, SessionEntry
 from .extensions import ExtensionAPI, ExtensionManager
 from .skills import Skill, SkillManager
+from .context import ContextManager
+from .prompts import PromptTemplate, PromptManager
 
 __version__ = "0.0.1"
 
@@ -25,4 +27,7 @@ __all__ = [
     "ExtensionManager",
     "Skill",
     "SkillManager",
+    "ContextManager",
+    "PromptTemplate",
+    "PromptManager",
 ]
