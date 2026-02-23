@@ -16,36 +16,69 @@ Python equivalent of [pi-mono](https://github.com/badlogic/pi-mono), providing t
 
 ## Quick Demo
 
-### Web UI (Easiest!)
+### Coding Agent with Full Features! 🚀
 ```bash
 # Install and run
-pip install -e packages/py-web-ui packages/py-ai
 export OPENAI_API_KEY=your-key
-py-webui
-# Open http://localhost:8000 in browser
+py-code
+
+# New features:
+/session    - Show session info (tree, branches, stats)
+/tree       - View conversation tree
+/fork name  - Fork session to new branch
+/compact    - Compact old messages
+/skills     - List available skills
+/skill:name - Invoke a skill
 ```
 
-### Agent with Tools
+### Session Management
 ```python
-from py_ai import LLM
-from py_agent_core import Agent, tool
+from py_agent_core import Session
 
-@tool(description="Get current time")
-def get_time() -> str:
-    from datetime import datetime
-    return datetime.now().strftime("%H:%M:%S")
+session = Session(name="my-work")
+session.add_message("user", "Question 1")
+session.add_message("assistant", "Answer 1")
 
-agent = Agent(llm=LLM(), tools=[get_time])
-agent.run("What time is it?")
+# Branch to earlier point
+session.branch_to(earlier_id)
+session.add_message("user", "Different question")
+
+# Fork to new session
+fork = session.fork(point_id, "alt-approach")
+fork.save()
 ```
 
-### Terminal UI
+### Extensions
 ```python
-from py_tui import ChatUI
+# my_extension.py
+def extension(api):
+    @api.tool(description="Custom tool")
+    def my_tool(x: str) -> str:
+        return x.upper()
+    
+    @api.command("stats")
+    def stats():
+        return "Statistics..."
 
-chat = ChatUI(title="My Bot")
-chat.user("Hello!")
-chat.assistant("Hi there!")
+# Auto-loaded from .agents/extensions/
+```
+
+### Skills
+```markdown
+<!-- .agents/skills/my-skill/SKILL.md -->
+# My Skill
+
+Use when user asks about X.
+
+## Steps
+1. Do this
+2. Then that
+```
+
+### Web UI
+```bash
+py-webui --port 8000
+# Open http://localhost:8000
 ```
 
 ## Installation

@@ -24,6 +24,11 @@ def main(
     provider: str = typer.Option("openai", "--provider", "-p", help="LLM provider"),
     workspace: Path = typer.Option(".", "--path", "-w", help="Workspace directory"),
     verbose: bool = typer.Option(True, "--verbose/--quiet", "-v/-q", help="Verbose output"),
+    resume: bool = typer.Option(False, "--resume", "-r", help="Resume last session"),
+    continue_session: bool = typer.Option(False, "--continue", "-c", help="Continue last session"),
+    session_name: Optional[str] = typer.Option(None, "--session", "-s", help="Session name"),
+    no_extensions: bool = typer.Option(False, "--no-extensions", help="Disable extensions"),
+    no_skills: bool = typer.Option(False, "--no-skills", help="Disable skills"),
 ):
     """Start interactive coding agent."""
     # Get API key
@@ -40,16 +45,44 @@ def main(
         model=model or ("gpt-3.5-turbo" if provider == "openai" else None),
     )
 
+    # Handle session loading
+    session_path = None
+    if resume or continue_session:
+        # Find last session
+        sessions_dir = workspace / ".sessions"
+        if sessions_dir.exists():
+            session_files = list(sessions_dir.glob("*.jsonl"))
+            if session_files:
+                # Get most recent
+                session_path = max(session_files, key=lambda p: p.stat().st_mtime)
+                console.print(f"[cyan]Resuming:[/cyan] {session_path.name}")
+
     # Create and run agent
     agent = CodingAgent(
         llm=llm,
         workspace=str(workspace),
         verbose=verbose,
+        session_name=session_name,
+        session_path=session_path,
+        enable_extensions=not no_extensions,
+        enable_skills=not no_skills,
     )
 
-    console.print(f"[green]Coding Agent started[/green]")
+    console.print(f"[green]✓ Coding Agent started[/green]")
     console.print(f"Model: [cyan]{llm.config.model}[/cyan]")
     console.print(f"Workspace: [cyan]{workspace.resolve()}[/cyan]")
+    
+    if agent.session:
+        console.print(f"Session: [cyan]{agent.session.name}[/cyan]")
+    
+    if agent.skill_manager and len(agent.skill_manager) > 0:
+        console.print(f"Skills: [cyan]{len(agent.skill_manager)} loaded[/cyan]")
+    
+    if agent.extension_manager and len(agent.extension_manager.extensions) > 0:
+        console.print(f"Extensions: [cyan]{len(agent.extension_manager.extensions)} loaded[/cyan]")
+    
+    console.print()
+    console.print("[dim]Type /help for commands, /exit to quit[/dim]")
     console.print()
 
     agent.run_interactive()
