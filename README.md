@@ -6,13 +6,13 @@ Python equivalent of [pi-mono](https://github.com/badlogic/pi-mono), providing t
 
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| **[py-ai](packages/py-ai)** | Unified multi-provider LLM API (OpenAI, Anthropic, Google, etc.) |
-| **[py-agent-core](packages/py-agent-core)** | Agent runtime with tool calling and state management |
-| **[py-coding-agent](packages/py-coding-agent)** | Interactive coding agent CLI |
-| **[py-tui](packages/py-tui)** | Terminal UI library with differential rendering |
-| **[py-web-ui](packages/py-web-ui)** | Web components for AI chat interfaces |
+| Package | Status | Description |
+|---------|--------|-------------|
+| **[py-ai](packages/py-ai)** | ✅ Ready | Unified multi-provider LLM API (OpenAI, Anthropic, Google, etc.) |
+| **[py-agent-core](packages/py-agent-core)** | ✅ Ready | Agent runtime with tool calling and state management |
+| **[py-coding-agent](packages/py-coding-agent)** | ✅ Ready | Interactive coding agent CLI |
+| **[py-tui](packages/py-tui)** | ✅ Ready | Terminal UI library with rich formatting |
+| **[py-web-ui](packages/py-web-ui)** | 🚧 Planned | Web components for AI chat interfaces |
 
 ## Installation
 
