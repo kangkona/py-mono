@@ -300,6 +300,14 @@ Tools: {len(self.agent.registry)}
         elif cmd.startswith("/share"):
             self._share_session()
 
+        elif cmd.startswith("/login"):
+            self._login()
+
+        elif cmd.startswith("/logout"):
+            parts = cmd.split(maxsplit=1)
+            provider = parts[1] if len(parts) > 1 else None
+            self._logout(provider)
+
         elif cmd.startswith("/"):
             # Check if it's a prompt template
             template_name = cmd.lstrip("/").split()[0]
@@ -511,6 +519,11 @@ Cost: ${info['metadata'].get('cost', 0.0):.4f}
 /prompts    - List prompt templates
 /template   - Expand a template
 
+**Authentication:**
+
+/login      - OAuth login (subscription accounts)
+/logout <provider> - Logout from provider
+
 **Context Files:**
 
 • AGENTS.md - Project instructions (auto-loaded)
@@ -636,6 +649,62 @@ Use /queue to see queued messages.
             self.ui.system(f"  Open in browser: file://{exported.absolute()}")
         except Exception as e:
             self.ui.error(f"Export failed: {e}")
+
+    def _login(self):
+        """Login to a provider via OAuth."""
+        from py_agent_core import AuthManager, OAuthProvider
+        from py_tui import Prompt
+
+        # Supported providers (examples)
+        providers_config = {
+            "anthropic": {
+                "name": "anthropic",
+                "client_id": "your-client-id",  # Users need to configure
+                "auth_url": "https://console.anthropic.com/oauth/authorize",
+                "token_url": "https://console.anthropic.com/oauth/token",
+                "scope": "read write",
+            },
+            # Add more providers as they become available
+        }
+
+        self.ui.panel(
+            """
+**OAuth Login**
+
+Currently, OAuth login is a framework feature.
+Most providers support API keys directly.
+
+For subscription login (Claude Pro, ChatGPT Plus):
+- Set up OAuth app in provider console
+- Configure client_id/secret in ~/.agents/oauth_providers.json
+- Then use /login
+
+For now, use API keys:
+  export OPENAI_API_KEY=sk-...
+  export ANTHROPIC_API_KEY=sk-ant-...
+            """,
+            title="OAuth Login",
+        )
+
+    def _logout(self, provider: Optional[str]):
+        """Logout from a provider.
+
+        Args:
+            provider: Provider name
+        """
+        from py_agent_core import AuthManager
+
+        if not provider:
+            self.ui.error("Usage: /logout <provider>")
+            self.ui.system("Example: /logout anthropic")
+            return
+
+        auth_mgr = AuthManager()
+
+        if auth_mgr.logout(provider):
+            self.ui.system(f"✓ Logged out from {provider}")
+        else:
+            self.ui.system(f"Not logged in to {provider}")
 
     def _share_session(self):
         """Share session via GitHub Gist."""

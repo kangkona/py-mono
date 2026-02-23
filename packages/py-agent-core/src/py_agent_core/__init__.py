@@ -14,6 +14,7 @@ from .message_queue import MessageQueue, MessageType, QueuedMessage
 from .export import SessionExporter
 from .share import GistSharer
 from .output_modes import JSONOutputMode, RPCMode, OutputModeManager
+from .auth import AuthManager, OAuthProvider, OAuthFlow, TokenInfo
 
 __version__ = "0.0.1"
 
@@ -45,4 +46,8 @@ __all__ = [
     "JSONOutputMode",
     "RPCMode",
     "OutputModeManager",
+    "AuthManager",
+    "OAuthProvider",
+    "OAuthFlow",
+    "TokenInfo",
 ]
