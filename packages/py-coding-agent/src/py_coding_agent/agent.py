@@ -255,6 +255,9 @@ Tools: {len(self.agent.registry)}
         elif cmd.startswith("/reload"):
             self._reload_resources()
 
+        elif cmd.startswith("/config"):
+            self._show_config()
+
         elif cmd.startswith("/"):
             # Check if it's a prompt template
             template_name = cmd.lstrip("/").split()[0]
@@ -443,6 +446,7 @@ Cost: ${info['metadata'].get('cost', 0.0):.4f}
 /exit       - Exit agent
 /clear      - Clear conversation
 /status     - Agent status
+/config     - Show configuration
 /files      - List workspace files
 
 **Session Management:**
@@ -550,6 +554,46 @@ Cost: ${info['metadata'].get('cost', 0.0):.4f}
         
         # Display response
         self.ui.assistant(response.content)
+
+    def _show_config(self):
+        """Show current configuration."""
+        from .config import ConfigManager
+        
+        config_mgr = ConfigManager(self.workspace)
+        config = config_mgr.load_config()
+        
+        config_text = f"""
+**Agent Configuration**
+
+Provider: {config.provider}
+Model: {config.model or 'default'}
+Temperature: {config.temperature}
+
+**Features**
+
+Extensions: {'enabled' if config.enable_extensions else 'disabled'}
+Skills: {'enabled' if config.enable_skills else 'disabled'}
+Prompts: {'enabled' if config.enable_prompts else 'disabled'}
+Context: {'enabled' if config.enable_context else 'disabled'}
+
+**Session**
+
+Auto-save: {'yes' if config.auto_save_session else 'no'}
+Cleanup: {config.session_cleanup_days} days
+
+**Display**
+
+Verbose: {config.verbose}
+Theme: {config.theme}
+
+**Config Files**
+
+Global: ~/.agents/config.json
+Project: .agents/config.json
+        """
+        
+        self.ui.panel(config_text, title="Configuration")
+        self.ui.system("Edit config files or use environment variables")
 
     def _reload_resources(self):
         """Reload extensions, skills, prompts, and context."""
