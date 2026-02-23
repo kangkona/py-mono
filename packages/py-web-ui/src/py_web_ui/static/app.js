@@ -207,7 +207,27 @@ class ChatApp {
             typingIndicator.remove();
         }
         
-        contentDiv.textContent += text;
+        // Append text
+        if (!contentDiv.dataset.content) {
+            contentDiv.dataset.content = '';
+        }
+        contentDiv.dataset.content += text;
+        
+        // Render with markdown
+        if (window.MarkdownRenderer) {
+            contentDiv.innerHTML = MarkdownRenderer.render(contentDiv.dataset.content);
+            
+            // Highlight code blocks
+            if (window.SyntaxHighlighter) {
+                contentDiv.querySelectorAll('pre code').forEach(block => {
+                    const lang = block.className.replace('language-', '');
+                    block.innerHTML = SyntaxHighlighter.highlight(block.textContent, lang);
+                });
+            }
+        } else {
+            contentDiv.textContent += text;
+        }
+        
         this.scrollToBottom();
     }
     
