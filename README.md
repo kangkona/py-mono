@@ -66,19 +66,22 @@ py-code --provider openrouter --model moonshotai/kimi-k2.5
 !Stop and explain what you're doing      # Interrupt with steering
 ```
 
-**Multi-Platform Bot**:
+**Multi-Platform Bot** ([setup guide](packages/py-messenger/README.md)):
 ```python
+import os
 from py_messenger import MessengerBot
-from py_messenger.adapters import SlackAdapter, DiscordAdapter
+from py_messenger.adapters import SlackAdapter
 from py_agent_core import Agent
 from py_ai import LLM
 
-agent = Agent(llm=LLM())
+agent = Agent(llm=LLM(provider="openrouter", model="moonshotai/kimi-k2.5",
+                       api_key=os.environ["OPENROUTER_API_KEY"]))
 bot = MessengerBot(agent)
-
-bot.add_platform(SlackAdapter(...))  # Slack
-bot.add_platform(DiscordAdapter(...)) # Discord
-bot.start()  # All platforms running!
+bot.add_platform(SlackAdapter(
+    app_token=os.environ["SLACK_APP_TOKEN"],
+    bot_token=os.environ["SLACK_BOT_TOKEN"],
+))
+bot.start()
 ```
 
 ---
@@ -115,6 +118,7 @@ bot.start()  # All platforms running!
 ## 📖 Documentation
 
 - **[Quick Start](QUICKSTART.md)** - Get started in 5 minutes
+- **[Messenger Bot](packages/py-messenger/README.md)** - Slack/Discord/Telegram bot setup
 - **[Testing Guide](TESTING.md)** - How to run and write tests
 - **[Contributing](CONTRIBUTING.md)** - Contribution guidelines
 

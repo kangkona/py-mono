@@ -1,29 +1,27 @@
 # py-messenger
 
-**Universal Multi-Platform Bot Framework** 🌍
+**Universal Multi-Platform Bot Framework**
 
 One agent, multiple messaging platforms. Write once, deploy everywhere.
 
 ## Features
 
-- 🌍 **Multi-Platform**: Slack, Discord, Telegram, WhatsApp, Feishu, and more
-- 🔌 **Plug-in Architecture**: Easy to add new platforms
-- 🤖 **Powered by py-agent-core**: Full agent capabilities
-- 💾 **Session Management**: Per-channel conversation history
-- 📁 **File Handling**: Upload/download across platforms
-- 🎯 **Unified API**: Same code for all platforms
+- **Multi-Platform**: Slack, Discord, Telegram, WhatsApp, Feishu
+- **Plug-in Architecture**: Easy to add new platforms
+- **Powered by py-agent-core**: Full agent capabilities
+- **Session Management**: Per-channel conversation history
+- **File Handling**: Upload/download across platforms
+- **Lazy Imports**: Only install deps for the platforms you use
 
 ## Supported Platforms
 
 | Platform | Status | Use Case |
 |----------|--------|----------|
-| **Slack** | ✅ Ready | Enterprise (Global) |
+| **Slack** | ✅ Tested | Enterprise (Global) |
 | **Discord** | ✅ Ready | Developer Communities |
 | **Telegram** | ✅ Ready | Personal & Groups |
 | **WhatsApp** | ✅ Ready | Personal Communication |
 | **Feishu (飞书)** | ✅ Ready | Enterprise (China) |
-| Matrix | 🔜 Coming | Open Federation |
-| WeChat | 🔜 Future | China Social |
 
 ## Installation
 
@@ -40,115 +38,70 @@ pip install py-messenger[all]
 
 ## Quick Start
 
-### Single Platform (Slack)
+### Slack Bot
 
 ```python
+import os
 from py_messenger import MessengerBot
 from py_messenger.adapters import SlackAdapter
-from py_agent_core import Agent, tool
+from py_agent_core import Agent
 from py_ai import LLM
 
-# Create your agent
-@tool(description="Get current time")
-def get_time() -> str:
-    from datetime import datetime
-    return datetime.now().strftime("%H:%M:%S")
-
 agent = Agent(
-    llm=LLM(provider="openai"),
-    tools=[get_time],
-    system_prompt="You are a helpful assistant."
+    llm=LLM(provider="openrouter", model="moonshotai/kimi-k2.5",
+            api_key=os.environ["OPENROUTER_API_KEY"]),
 )
 
-# Create bot
 bot = MessengerBot(agent)
-
-# Add Slack
-slack = SlackAdapter(
-    app_token="xapp-...",
-    bot_token="xoxb-..."
-)
-bot.add_platform(slack)
-
-# Start!
+bot.add_platform(SlackAdapter(
+    app_token=os.environ["SLACK_APP_TOKEN"],  # xapp-...
+    bot_token=os.environ["SLACK_BOT_TOKEN"],  # xoxb-...
+))
 bot.start()
 ```
 
 ### Multi-Platform Bot
 
 ```python
-# Same agent, multiple platforms!
+from py_messenger.adapters import SlackAdapter, DiscordAdapter, TelegramAdapter
 
 bot = MessengerBot(agent)
-
-# Add Slack
 bot.add_platform(SlackAdapter(
-    app_token="xapp-...",
-    bot_token="xoxb-..."
+    app_token=os.environ["SLACK_APP_TOKEN"],
+    bot_token=os.environ["SLACK_BOT_TOKEN"],
 ))
-
-# Add Discord
-bot.add_platform(DiscordAdapter(
-    bot_token="your-discord-token"
-))
-
-# Add Telegram
-bot.add_platform(TelegramAdapter(
-    bot_token="your-telegram-token"
-))
-
-# Start all platforms at once!
-bot.start()
+bot.add_platform(DiscordAdapter(bot_token=os.environ["DISCORD_BOT_TOKEN"]))
+bot.add_platform(TelegramAdapter(bot_token=os.environ["TELEGRAM_BOT_TOKEN"]))
+bot.start()  # All platforms run in parallel
 ```
 
-## Platform Setup
+## Slack App Setup
 
-### Slack
-
-1. Create app at https://api.slack.com/apps
-2. Enable Socket Mode
-3. Add Bot Token Scopes:
+1. Create app at https://api.slack.com/apps → Create New App → From scratch
+2. **Socket Mode**: Settings → Socket Mode → Enable, generate App Token (`xapp-...`, scope: `connections:write`)
+3. **Bot Permissions**: Features → OAuth & Permissions → Bot Token Scopes:
    - `app_mentions:read`
    - `chat:write`
+   - `channels:history`
    - `files:read`
    - `files:write`
-4. Get app token (xapp-...) and bot token (xoxb-...)
-
-```python
-from py_messenger.adapters import SlackAdapter
-
-slack = SlackAdapter(
-    app_token="xapp-1-...",
-    bot_token="xoxb-..."
-)
-```
+   - `users:read`
+4. **Event Subscriptions**: Features → Event Subscriptions → Enable, subscribe to bot events:
+   - `app_mention`
+   - `message.im`
+5. **Install**: Settings → Install App → Install to Workspace, get Bot Token (`xoxb-...`)
+6. Invite bot to a channel: `/invite @your-bot-name`
 
 ### Discord
 
 1. Create app at https://discord.com/developers
-2. Add bot with permissions:
-   - Read Messages
-   - Send Messages
-   - Attach Files
+2. Add bot with permissions: Read Messages, Send Messages, Attach Files
 3. Get bot token
-
-```python
-from py_messenger.adapters import DiscordAdapter
-
-discord = DiscordAdapter(bot_token="your-token")
-```
 
 ### Telegram
 
-1. Talk to @BotFather
-2. Create new bot
-3. Get token
-
-```python
-from py_messenger.adapters import TelegramAdapter
-
-telegram = TelegramAdapter(bot_token="your-token")
-```
+1. Talk to @BotFather, create new bot
+2. Get token
 
 ## Advanced Usage
 
@@ -245,47 +198,12 @@ class MyPlatformAdapter(MessagePlatform):
 bot.add_platform(MyPlatformAdapter(api_key="..."))
 ```
 
-## CLI Usage
+## Testing
 
 ```bash
-# Start with config file
-py-messenger --config config.yml
-
-# config.yml:
-# platforms:
-#   - type: slack
-#     app_token: xapp-...
-#     bot_token: xoxb-...
-#   - type: discord
-#     bot_token: ...
+# Unit tests (no Slack credentials needed)
+pytest packages/py-messenger/tests/test_slack_adapter.py -v
 ```
-
-## Examples
-
-See `examples/` directory:
-- `slack_bot.py` - Slack bot
-- `discord_bot.py` - Discord bot
-- `multi_platform.py` - Multi-platform bot
-- `custom_adapter.py` - Custom adapter example
-
-## Comparison
-
-### vs pi-mom
-
-| Feature | pi-mom | py-messenger |
-|---------|--------|--------------|
-| Platforms | Slack only | **5+ platforms** |
-| Extensibility | Fixed | **Plug-in based** |
-| Session | Per-channel | **Per-platform+channel** |
-| Code reuse | N/A | **High** |
-
-### Advantages
-
-- ✅ Write once, deploy everywhere
-- ✅ Easy to add new platforms
-- ✅ Unified session management
-- ✅ Same agent capabilities everywhere
-- ✅ Future-proof architecture
 
 ## License
 

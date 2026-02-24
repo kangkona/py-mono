@@ -46,14 +46,28 @@ class SlackAdapter(MessagePlatform):
 
     def _setup_handlers(self):
         """Setup Slack event handlers."""
+        import asyncio
+
+        def _run_async(coro):
+            """Run async coroutine from sync context."""
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop and loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    return pool.submit(asyncio.run, coro).result()
+            else:
+                return asyncio.run(coro)
 
         @self.app.event("app_mention")
-        async def handle_mention(event, say):
+        def handle_mention(event, say):
             """Handle @mention."""
-            await self._handle_slack_message(event, is_mention=True)
+            _run_async(self._handle_slack_message(event, is_mention=True))
 
         @self.app.event("message")
-        async def handle_message(event, say):
+        def handle_message(event, say):
             """Handle direct messages and channel messages."""
             # Skip bot's own messages
             if event.get("user") == self.bot_user_id:
@@ -66,7 +80,7 @@ class SlackAdapter(MessagePlatform):
             is_mention = f"<@{self.bot_user_id}>" in text
 
             if is_dm or is_mention:
-                await self._handle_slack_message(event, is_mention=is_mention, is_dm=is_dm)
+                _run_async(self._handle_slack_message(event, is_mention=is_mention, is_dm=is_dm))
 
     async def _handle_slack_message(
         self, event: dict, is_mention: bool = False, is_dm: bool = False

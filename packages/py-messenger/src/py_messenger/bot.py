@@ -1,6 +1,5 @@
 """Universal messenger bot core."""
 
-import asyncio
 from typing import Dict, Optional
 from pathlib import Path
 
@@ -69,8 +68,9 @@ class MessengerBot:
             # Get or create session for this channel
             session = None
             if self.session_manager:
-                session_key = f"{message.platform}:{message.channel_id}"
-                session = self.session_manager.get_session(session_key)
+                session = self.session_manager.get_session(
+                    message.platform, message.channel_id
+                )
 
                 # Add user message to session
                 session.add_message("user", message.text)
@@ -120,28 +120,27 @@ class MessengerBot:
             print(f"   • {name}")
         print()
 
-        # Start all platforms in parallel
-        tasks = []
-        for platform in self.platforms.values():
-            tasks.append(asyncio.create_task(self._run_platform(platform)))
-
-        # Wait for all
-        try:
-            asyncio.get_event_loop().run_until_complete(asyncio.gather(*tasks))
-        except KeyboardInterrupt:
-            print("\n\nStopping bot...")
-            self.stop()
-
-    async def _run_platform(self, platform: MessagePlatform) -> None:
-        """Run a platform in async context.
-
-        Args:
-            platform: Platform to run
-        """
-        try:
-            await asyncio.to_thread(platform.start)
-        except Exception as e:
-            print(f"Platform {platform.name} error: {e}")
+        if len(self.platforms) == 1:
+            # Single platform — just call start() directly (blocking)
+            platform = next(iter(self.platforms.values()))
+            try:
+                platform.start()
+            except KeyboardInterrupt:
+                print("\n\nStopping bot...")
+                self.stop()
+        else:
+            # Multiple platforms — run in threads
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = {
+                    executor.submit(p.start): name
+                    for name, p in self.platforms.items()
+                }
+                try:
+                    concurrent.futures.wait(futures)
+                except KeyboardInterrupt:
+                    print("\n\nStopping bot...")
+                    self.stop()
 
     def stop(self) -> None:
         """Stop all platforms."""
