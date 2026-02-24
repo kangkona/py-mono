@@ -6,22 +6,8 @@ Get started with pig-mono in 5 minutes!
 
 - Python 3.10 or higher
 - pip
-- OpenRouter API key (recommended) or any LLM provider API key
+- An API key from any supported LLM provider (OpenAI, Anthropic, Google, OpenRouter, etc.)
 - (Optional) virtualenv or conda
-
-### Get OpenRouter API Key (Recommended)
-
-OpenRouter gives you access to 100+ models with one API key:
-
-1. Visit https://openrouter.ai
-2. Sign up and get your API key
-3. You can now use OpenAI, Anthropic, Google, Meta models and more!
-
-**Why OpenRouter?**
-- One API key for all models
-- Often cheaper than direct APIs
-- No rate limits
-- Easy model switching
 
 ## Installation
 
@@ -59,7 +45,7 @@ Create a file `test.py`:
 from pig_llm import LLM
 import os
 
-# Initialize with OpenRouter (recommended)
+# Initialize with OpenRouter
 llm = LLM(
     provider="openrouter",
     api_key=os.getenv("OPENROUTER_API_KEY"),
@@ -89,13 +75,6 @@ Run it:
 ```bash
 export OPENROUTER_API_KEY="your-openrouter-key"
 python test.py
-
-# Available models on OpenRouter:
-# - openai/gpt-4o
-# - anthropic/claude-3.5-sonnet
-# - google/gemini-pro
-# - meta-llama/llama-3.1-70b
-# - And 100+ more!
 ```
 
 ### Running Tests
