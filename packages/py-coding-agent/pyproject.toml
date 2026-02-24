@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "py-mono-coding-agent"
-version = "0.0.1"
+version = "0.0.2"
 description = "Interactive coding agent CLI"
 readme = "README.md"
 license = { text = "MIT" }

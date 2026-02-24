@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "py-mono-agent-core"
-version = "0.0.1"
+version = "0.0.2"
 description = "Agent runtime with tool calling and state management"
 readme = "README.md"
 license = { text = "MIT" }
