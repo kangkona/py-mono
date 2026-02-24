@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "py-web-ui"
+name = "py-mono-web-ui"
 version = "0.0.1"
 description = "Web UI components for AI chat interfaces"
 readme = "README.md"

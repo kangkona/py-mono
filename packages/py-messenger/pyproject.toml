@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "py-messenger"
+name = "py-mono-messenger"
 version = "0.0.1"
 description = "Universal multi-platform bot framework"
 readme = "README.md"

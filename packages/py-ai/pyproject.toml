@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "py-ai"
+name = "py-mono-ai"
 version = "0.0.1"
 description = "Unified multi-provider LLM API (OpenAI, Anthropic, Google, etc.)"
 readme = "README.md"

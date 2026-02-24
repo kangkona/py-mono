@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "py-coding-agent"
+name = "py-mono-coding-agent"
 version = "0.0.1"
 description = "Interactive coding agent CLI"
 readme = "README.md"
