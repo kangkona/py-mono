@@ -24,6 +24,7 @@ jobs:
         cache: 'pip'
 
     - name: Install dependencies
+      shell: bash
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
@@ -53,15 +54,18 @@ jobs:
       shell: bash
 
     - name: Run linting
+      shell: bash
       run: |
         ruff check packages/
         ruff format --check packages/
 
     - name: Run type checking
+      shell: bash
       run: |
         mypy packages/ || true
 
     - name: Run tests
+      shell: bash
       run: |
         # Run root tests separately, then each package
         # (avoids conftest.py module name collisions across packages)
