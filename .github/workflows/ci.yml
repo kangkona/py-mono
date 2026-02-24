@@ -49,7 +49,7 @@ jobs:
 
         # Install all third-party dependencies
         pip install openai anthropic pydantic rich prompt-toolkit \
-          typer fastapi uvicorn jinja2 python-multipart
+          typer fastapi uvicorn jinja2 python-multipart coverage
       shell: bash
 
     - name: Run linting
@@ -63,7 +63,16 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest tests/ packages/*/tests -v --cov=packages --cov-report=xml --cov-report=term
+        # Run root tests separately, then each package
+        # (avoids conftest.py module name collisions across packages)
+        pytest tests/ -v --cov=packages --cov-report=term
+        for pkg in packages/*/; do
+          if [ -d "$pkg/tests" ]; then
+            pytest "$pkg/tests" -v --cov=packages --cov-append
+          fi
+        done
+        # Generate final coverage report
+        coverage xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
