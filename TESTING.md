@@ -95,7 +95,7 @@ pytest -m "not slow"
 def test_message_creation():
     """Test message creation."""
     from pig_llm.models import Message
-    
+
     msg = Message(role="user", content="Hello")
     assert msg.role == "user"
     assert msg.content == "Hello"
@@ -110,10 +110,10 @@ def test_ai_to_agent_integration():
     """Test pig-llm integration with pig-agent-core."""
     from pig_llm import LLM
     from pig_agent_core import Agent
-    
+
     llm = LLM(provider="openai", api_key="test")
     agent = Agent(llm=llm)
-    
+
     assert agent.llm == llm
 ```
 
@@ -126,7 +126,7 @@ def test_with_mock_llm():
     """Test with mocked LLM."""
     mock_llm = Mock()
     mock_llm.complete = Mock(return_value=Mock(content="Test"))
-    
+
     agent = Agent(llm=mock_llm)
     # Test agent behavior
 ```
@@ -246,10 +246,10 @@ Structure tests clearly:
 def test_tool_execution():
     # Arrange
     tool = Tool(func=my_func)
-    
+
     # Act
     result = tool.execute(x=5)
-    
+
     # Assert
     assert result == 10
 ```
@@ -343,7 +343,7 @@ touch packages/my-package/tests/test_my_module.py
 def test_my_function():
     """Test my function."""
     from my_package import my_function
-    
+
     result = my_function(42)
     assert result == expected
 ```

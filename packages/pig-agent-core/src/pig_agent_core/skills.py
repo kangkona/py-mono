@@ -1,7 +1,6 @@
 """Skills system following Agent Skills standard."""
 
 from pathlib import Path
-from typing import Optional
 
 
 class Skill:
@@ -185,7 +184,7 @@ class SkillManager:
 
         return skill
 
-    def get_skill(self, name: str) -> Optional[Skill]:
+    def get_skill(self, name: str) -> Skill | None:
         """Get a skill by name.
 
         Args:
@@ -204,7 +203,7 @@ class SkillManager:
         """
         return list(self.skills.values())
 
-    def get_skill_prompt(self, name: str) -> Optional[str]:
+    def get_skill_prompt(self, name: str) -> str | None:
         """Get skill prompt text.
 
         Args:

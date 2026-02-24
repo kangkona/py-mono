@@ -1,13 +1,12 @@
 """WhatsApp platform adapter (via WhatsApp Business API)."""
 
-from typing import Optional, List
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 import httpx
 
+from ..message import Attachment, UniversalMessage
 from ..platform import MessagePlatform
-from ..message import UniversalMessage, Attachment
 
 
 class WhatsAppAdapter(MessagePlatform):
@@ -17,8 +16,8 @@ class WhatsAppAdapter(MessagePlatform):
         self,
         phone_number_id: str,
         access_token: str,
-        verify_token: Optional[str] = None,
-        webhook_url: Optional[str] = None,
+        verify_token: str | None = None,
+        webhook_url: str | None = None,
     ):
         """Initialize WhatsApp adapter.
 
@@ -36,15 +35,13 @@ class WhatsAppAdapter(MessagePlatform):
         self.webhook_url = webhook_url
 
         self.api_base = "https://graph.facebook.com/v18.0"
-        self.client = httpx.AsyncClient(
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
+        self.client = httpx.AsyncClient(headers={"Authorization": f"Bearer {access_token}"})
 
     async def send_message(
         self,
         channel_id: str,
         text: str,
-        thread_id: Optional[str] = None,
+        thread_id: str | None = None,
         **kwargs,
     ) -> str:
         """Send text message via WhatsApp.
@@ -73,9 +70,7 @@ class WhatsAppAdapter(MessagePlatform):
         data = response.json()
         return data["messages"][0]["id"]
 
-    async def send_template(
-        self, channel_id: str, template_name: str, **params
-    ) -> str:
+    async def send_template(self, channel_id: str, template_name: str, **params) -> str:
         """Send template message.
 
         Args:
@@ -105,8 +100,8 @@ class WhatsAppAdapter(MessagePlatform):
         self,
         channel_id: str,
         file_path: Path,
-        caption: Optional[str] = None,
-        thread_id: Optional[str] = None,
+        caption: str | None = None,
+        thread_id: str | None = None,
     ) -> str:
         """Send file via WhatsApp.
 
@@ -158,9 +153,7 @@ class WhatsAppAdapter(MessagePlatform):
         data = response.json()
         return data["messages"][0]["id"]
 
-    async def get_history(
-        self, channel_id: str, limit: int = 100
-    ) -> List[UniversalMessage]:
+    async def get_history(self, channel_id: str, limit: int = 100) -> list[UniversalMessage]:
         """Get WhatsApp message history.
 
         Note: WhatsApp Business API doesn't provide history retrieval.
@@ -222,9 +215,7 @@ class WhatsAppAdapter(MessagePlatform):
                     # Emit asynchronously
                     asyncio.create_task(self._emit_message(msg))
 
-    def _convert_webhook_message(
-        self, message: dict, value: dict
-    ) -> UniversalMessage:
+    def _convert_webhook_message(self, message: dict, value: dict) -> UniversalMessage:
         """Convert WhatsApp webhook message to UniversalMessage.
 
         Args:
@@ -261,7 +252,9 @@ class WhatsAppAdapter(MessagePlatform):
                 attachments.append(
                     Attachment(
                         id=media["id"],
-                        filename=media.get("filename", f"{media_type}.{media.get('mime_type', '').split('/')[-1]}"),
+                        filename=media.get(
+                            "filename", f"{media_type}.{media.get('mime_type', '').split('/')[-1]}"
+                        ),
                         content_type=media.get("mime_type", ""),
                         size=0,  # Not provided in webhook
                     )
@@ -286,7 +279,7 @@ class WhatsAppAdapter(MessagePlatform):
         Note: Requires external webhook server.
         Use Flask/FastAPI to receive webhooks and call handle_webhook().
         """
-        print(f"WhatsApp adapter ready")
+        print("WhatsApp adapter ready")
         print(f"Configure webhook: {self.webhook_url}")
         print("Call adapter.handle_webhook(payload) from your webhook server")
 

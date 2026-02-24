@@ -1,25 +1,35 @@
 """Advanced TUI components."""
 
 from pathlib import Path
-from typing import List, Optional, Callable
+
 from prompt_toolkit import prompt as pt_prompt
 from prompt_toolkit.completion import Completer, Completion
-from prompt_toolkit.validation import Validator, ValidationError
 from rich.console import Console
 from rich.table import Table
 
 # Directories to skip during file completion
 _IGNORE_DIRS = {
-    ".git", "__pycache__", "node_modules", ".venv", "venv",
-    ".tox", ".mypy_cache", ".pytest_cache", ".ruff_cache",
-    "dist", "build", ".eggs", "*.egg-info", "htmlcov",
+    ".git",
+    "__pycache__",
+    "node_modules",
+    ".venv",
+    "venv",
+    ".tox",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    "dist",
+    "build",
+    ".eggs",
+    "*.egg-info",
+    "htmlcov",
 }
 
 
 class AutoCompleter(Completer):
     """Autocomplete for prompts."""
 
-    def __init__(self, choices: List[str]):
+    def __init__(self, choices: list[str]):
         """Initialize autocompleter.
 
         Args:
@@ -58,6 +68,7 @@ class FileCompleter(Completer):
             base_path: Base directory for file completion
         """
         from pathlib import Path
+
         self.base_path = Path(base_path)
 
     def get_completions(self, document, complete_event):
@@ -99,7 +110,7 @@ class PyCodeCompleter(Completer):
     - @file reference completion
     """
 
-    def __init__(self, commands: List[str], workspace: str = "."):
+    def __init__(self, commands: list[str], workspace: str = "."):
         self.commands = sorted(commands)
         self.workspace = Path(workspace)
 
@@ -133,7 +144,7 @@ class PyCodeCompleter(Completer):
         # @file reference completion
         at_pos = text.rfind("@")
         if at_pos >= 0:
-            partial = text[at_pos + 1:]
+            partial = text[at_pos + 1 :]
             # Determine directory prefix for narrowing search
             if "/" in partial:
                 dir_prefix = partial.rsplit("/", 1)[0]
@@ -153,11 +164,10 @@ class PyCodeCompleter(Completer):
                     )
 
 
-
 class MultiSelect:
     """Multi-select checkbox list."""
 
-    def __init__(self, title: str, choices: List[str]):
+    def __init__(self, title: str, choices: list[str]):
         """Initialize multi-select.
 
         Args:
@@ -168,13 +178,14 @@ class MultiSelect:
         self.choices = choices
         self.selected = set()
 
-    def show(self) -> List[str]:
+    def show(self) -> list[str]:
         """Show selection UI and get results.
 
         Returns:
             List of selected items
         """
         from rich.prompt import Prompt
+
         console = Console()
 
         console.print(f"\n[bold]{self.title}[/bold]")
@@ -195,9 +206,7 @@ class MultiSelect:
 
         try:
             indices = [int(x.strip()) - 1 for x in selection.split()]
-            selected = [
-                self.choices[i] for i in indices if 0 <= i < len(self.choices)
-            ]
+            selected = [self.choices[i] for i in indices if 0 <= i < len(self.choices)]
             return selected
         except ValueError:
             console.print("[red]Invalid selection[/red]")
@@ -240,13 +249,14 @@ class InteractiveTable:
         console = Console()
         console.print(self.table)
 
-    def select_row(self) -> Optional[int]:
+    def select_row(self) -> int | None:
         """Show table and let user select a row.
 
         Returns:
             Selected row index or None
         """
         from rich.prompt import Prompt
+
         console = Console()
 
         self.show()
@@ -268,7 +278,7 @@ class InteractiveTable:
 
 def prompt_with_autocomplete(
     question: str,
-    choices: Optional[List[str]] = None,
+    choices: list[str] | None = None,
     file_completion: bool = False,
     base_path: str = ".",
 ) -> str:

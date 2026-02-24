@@ -1,6 +1,7 @@
 """Data models for agent runtime."""
 
-from typing import Any, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -18,7 +19,7 @@ class ToolResult(BaseModel):
     tool_call_id: str
     name: str
     result: Any
-    error: Optional[str] = None
+    error: str | None = None
     success: bool = True
 
 
@@ -26,12 +27,13 @@ class AgentState(BaseModel):
     """State of an agent."""
 
     name: str
-    system_prompt: Optional[str] = None
+    system_prompt: str | None = None
     messages: list[dict[str, Any]] = Field(default_factory=list)
     tool_calls: list[ToolCall] = Field(default_factory=list)
     tool_results: list[ToolResult] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
-    
+
     class Config:
         """Pydantic config."""
+
         arbitrary_types_allowed = True

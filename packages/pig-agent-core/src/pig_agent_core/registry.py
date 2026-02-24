@@ -1,6 +1,7 @@
 """Tool registry for managing agent tools."""
 
-from typing import Any, Optional
+from typing import Any
+
 from .tools import Tool
 
 
@@ -27,7 +28,7 @@ class ToolRegistry:
         """
         self._tools.pop(name, None)
 
-    def get(self, name: str) -> Optional[Tool]:
+    def get(self, name: str) -> Tool | None:
         """Get a tool by name.
 
         Args:

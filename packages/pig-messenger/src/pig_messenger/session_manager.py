@@ -1,7 +1,6 @@
 """Multi-platform session management."""
 
 from pathlib import Path
-from typing import Dict, Optional
 
 from pig_agent_core import Session
 
@@ -16,7 +15,7 @@ class MultiPlatformSessionManager:
             workspace: Workspace directory
         """
         self.workspace = workspace
-        self.sessions: Dict[str, Session] = {}
+        self.sessions: dict[str, Session] = {}
         self.sessions_dir = workspace / "sessions"
         self.sessions_dir.mkdir(exist_ok=True)
 
@@ -34,7 +33,7 @@ class MultiPlatformSessionManager:
 
     def get_session(
         self, platform: str, channel_id: str, auto_create: bool = True
-    ) -> Optional[Session]:
+    ) -> Session | None:
         """Get or create session for a platform+channel.
 
         Args:
@@ -78,7 +77,7 @@ class MultiPlatformSessionManager:
 
         return None
 
-    def list_sessions(self) -> Dict[str, Session]:
+    def list_sessions(self) -> dict[str, Session]:
         """List all active sessions.
 
         Returns:

@@ -1,7 +1,7 @@
 """Message queue for handling messages while agent is working."""
 
 from enum import Enum
-from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -17,7 +17,7 @@ class QueuedMessage(BaseModel):
 
     content: str
     type: MessageType = MessageType.FOLLOWUP
-    timestamp: Optional[str] = None
+    timestamp: str | None = None
 
 
 class MessageQueue:
@@ -36,9 +36,7 @@ class MessageQueue:
         Args:
             message: Message content
         """
-        self.queue.append(
-            QueuedMessage(content=message, type=MessageType.STEERING)
-        )
+        self.queue.append(QueuedMessage(content=message, type=MessageType.STEERING))
 
     def add_followup(self, message: str) -> None:
         """Add a follow-up message (wait until fully done).
@@ -46,9 +44,7 @@ class MessageQueue:
         Args:
             message: Message content
         """
-        self.queue.append(
-            QueuedMessage(content=message, type=MessageType.FOLLOWUP)
-        )
+        self.queue.append(QueuedMessage(content=message, type=MessageType.FOLLOWUP))
 
     def get_steering_messages(self) -> list[QueuedMessage]:
         """Get all steering messages and remove from queue.
@@ -82,7 +78,7 @@ class MessageQueue:
             return [followup[0]]
         return followup
 
-    def peek(self) -> Optional[QueuedMessage]:
+    def peek(self) -> QueuedMessage | None:
         """Peek at next message without removing.
 
         Returns:

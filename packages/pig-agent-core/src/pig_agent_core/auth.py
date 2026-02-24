@@ -2,13 +2,12 @@
 
 import json
 import secrets
-import webbrowser
-from pathlib import Path
-from typing import Optional, Dict
-from datetime import datetime, timedelta
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlencode, parse_qs
 import threading
+import webbrowser
+from datetime import datetime, timedelta
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlencode
 
 from pydantic import BaseModel
 
@@ -17,10 +16,10 @@ class TokenInfo(BaseModel):
     """OAuth token information."""
 
     access_token: str
-    refresh_token: Optional[str] = None
+    refresh_token: str | None = None
     token_type: str = "Bearer"
-    expires_at: Optional[datetime] = None
-    scope: Optional[str] = None
+    expires_at: datetime | None = None
+    scope: str | None = None
 
 
 class OAuthProvider(BaseModel):
@@ -28,7 +27,7 @@ class OAuthProvider(BaseModel):
 
     name: str
     client_id: str
-    client_secret: Optional[str] = None
+    client_secret: str | None = None
     auth_url: str
     token_url: str
     redirect_uri: str = "http://localhost:8765/callback"
@@ -53,14 +52,14 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
                 self.wfile.write(
-                    """
+                    b"""
                     <html>
                     <body style="font-family: sans-serif; text-align: center; padding: 50px;">
                         <h1 style="color: green;">&#10003; Authentication Successful!</h1>
                         <p>You can close this window and return to the terminal.</p>
                     </body>
                     </html>
-                    """.encode()
+                    """
                 )
             else:
                 self.send_response(400)
@@ -87,7 +86,7 @@ class OAuthFlow:
         self.provider = provider
         self.state = secrets.token_urlsafe(32)
 
-    def start_flow(self) -> Optional[str]:
+    def start_flow(self) -> str | None:
         """Start OAuth flow and return authorization code.
 
         Returns:
@@ -104,7 +103,7 @@ class OAuthFlow:
 
         auth_url = f"{self.provider.auth_url}?{urlencode(params)}"
 
-        print(f"\n🔐 Opening browser for authentication...")
+        print("\n🔐 Opening browser for authentication...")
         print(f"Provider: {self.provider.name}")
         print(f"Redirect: {self.provider.redirect_uri}")
         print()
@@ -136,7 +135,7 @@ class OAuthFlow:
         print("✓ Authorization code received")
         return auth_code
 
-    def exchange_code(self, code: str) -> Optional[TokenInfo]:
+    def exchange_code(self, code: str) -> TokenInfo | None:
         """Exchange authorization code for access token.
 
         Args:
@@ -156,9 +155,7 @@ class OAuthFlow:
         }
 
         try:
-            response = httpx.post(
-                self.provider.token_url, data=payload, timeout=30
-            )
+            response = httpx.post(self.provider.token_url, data=payload, timeout=30)
             response.raise_for_status()
 
             data = response.json()
@@ -185,7 +182,7 @@ class OAuthFlow:
 class AuthManager:
     """Manages authentication for multiple providers."""
 
-    def __init__(self, storage_path: Optional[Path] = None):
+    def __init__(self, storage_path: Path | None = None):
         """Initialize auth manager.
 
         Args:
@@ -195,7 +192,7 @@ class AuthManager:
             storage_path = Path.home() / ".agents" / "auth.json"
 
         self.storage_path = storage_path
-        self.tokens: Dict[str, TokenInfo] = {}
+        self.tokens: dict[str, TokenInfo] = {}
         self._load_tokens()
 
     def _load_tokens(self) -> None:
@@ -214,10 +211,7 @@ class AuthManager:
         """Save tokens to storage."""
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
 
-        data = {
-            provider: token.model_dump(mode="json")
-            for provider, token in self.tokens.items()
-        }
+        data = {provider: token.model_dump(mode="json") for provider, token in self.tokens.items()}
 
         self.storage_path.write_text(json.dumps(data, indent=2, default=str))
 
@@ -267,7 +261,7 @@ class AuthManager:
         print(f"Not logged in to {provider_name}")
         return False
 
-    def get_token(self, provider_name: str) -> Optional[str]:
+    def get_token(self, provider_name: str) -> str | None:
         """Get access token for a provider.
 
         Args:

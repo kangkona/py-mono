@@ -5,7 +5,7 @@ Review the provided code for:
 ## Focus Areas
 
 - **Security**: Identify potential vulnerabilities
-- **Performance**: Find optimization opportunities  
+- **Performance**: Find optimization opportunities
 - **Best Practices**: Check adherence to conventions
 - **Error Handling**: Verify robust error handling
 - **Testing**: Assess test coverage needs

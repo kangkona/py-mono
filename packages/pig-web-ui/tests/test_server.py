@@ -1,7 +1,8 @@
 """Tests for chat server."""
 
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
 from fastapi.testclient import TestClient
 from pig_web_ui.server import ChatServer
 
@@ -39,21 +40,18 @@ def test_server_creation_with_cors(mock_llm):
     """Test server with CORS enabled."""
     server = ChatServer(llm=mock_llm, cors=True)
     # CORS middleware should be added
-    assert any(
-        m.cls.__name__ == "CORSMiddleware"
-        for m in server.app.user_middleware
-    )
+    assert any(m.cls.__name__ == "CORSMiddleware" for m in server.app.user_middleware)
 
 
 def test_server_routes(mock_llm):
     """Test server has required routes."""
     server = ChatServer(llm=mock_llm)
     client = TestClient(server.app)
-    
+
     # Test home page
     response = client.get("/")
     assert response.status_code == 200
-    
+
     # Test history endpoint
     response = client.get("/api/history")
     assert response.status_code == 200
@@ -64,11 +62,11 @@ def test_server_clear_history(mock_llm):
     """Test clearing history."""
     server = ChatServer(llm=mock_llm)
     client = TestClient(server.app)
-    
+
     # Add some history
     server.history.append(Mock())
     assert len(server.history) > 0
-    
+
     # Clear history
     response = client.delete("/api/history")
     assert response.status_code == 200
@@ -78,10 +76,10 @@ def test_server_clear_history(mock_llm):
 def test_server_format_sse(mock_llm):
     """Test SSE formatting."""
     from pig_web_ui.models import StreamChunk
-    
+
     server = ChatServer(llm=mock_llm)
     chunk = StreamChunk(type="token", content="Hello")
-    
+
     sse = server._format_sse(chunk)
     assert sse.startswith("data: ")
     assert sse.endswith("\n\n")
@@ -92,7 +90,7 @@ def test_server_with_agent():
     """Test server with agent."""
     mock_agent = Mock()
     mock_agent.run = Mock(return_value=Mock(content="Agent response"))
-    
+
     server = ChatServer(agent=mock_agent)
     assert server.agent == mock_agent
     assert server.llm is None

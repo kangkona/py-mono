@@ -1,9 +1,9 @@
 """Mistral AI provider implementation."""
 
-from typing import AsyncIterator, Iterator, Optional
+from collections.abc import AsyncIterator, Iterator
 
-from mistralai.client import MistralClient
 from mistralai.async_client import MistralAsyncClient
+from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
 
 from ..config import Config
@@ -22,16 +22,14 @@ class MistralProvider(Provider):
 
     def _convert_messages(self, messages: list[Message]) -> list[ChatMessage]:
         """Convert internal messages to Mistral format."""
-        return [
-            ChatMessage(role=msg.role, content=msg.content) for msg in messages
-        ]
+        return [ChatMessage(role=msg.role, content=msg.content) for msg in messages]
 
     def complete(
         self,
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Generate a completion."""
@@ -46,9 +44,7 @@ class MistralProvider(Provider):
         choice = response.choices[0]
         usage = {
             "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
-            "completion_tokens": response.usage.completion_tokens
-            if response.usage
-            else 0,
+            "completion_tokens": response.usage.completion_tokens if response.usage else 0,
             "total_tokens": response.usage.total_tokens if response.usage else 0,
         }
 
@@ -65,7 +61,7 @@ class MistralProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
         """Stream a completion."""
@@ -90,7 +86,7 @@ class MistralProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Async generate a completion."""
@@ -105,9 +101,7 @@ class MistralProvider(Provider):
         choice = response.choices[0]
         usage = {
             "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
-            "completion_tokens": response.usage.completion_tokens
-            if response.usage
-            else 0,
+            "completion_tokens": response.usage.completion_tokens if response.usage else 0,
             "total_tokens": response.usage.total_tokens if response.usage else 0,
         }
 
@@ -124,7 +118,7 @@ class MistralProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Async stream a completion."""

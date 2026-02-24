@@ -13,12 +13,12 @@ class Theme:
     error_color: str = "red"
     timestamp_color: str = "dim"
     border_color: str = "blue"
-    
+
     @classmethod
     def dark(cls) -> "Theme":
         """Get dark theme."""
         return cls()
-    
+
     @classmethod
     def light(cls) -> "Theme":
         """Get light theme."""

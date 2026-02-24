@@ -2,7 +2,6 @@
 
 import os
 import sys
-from typing import Optional
 
 try:
     import typer
@@ -21,12 +20,11 @@ except ImportError:
 
 from .server import ChatServer
 
-
 console = Console()
 
 
 def main(
-    model: Optional[str] = None,
+    model: str | None = None,
     provider: str = "openai",
     port: int = 8000,
     host: str = "127.0.0.1",
@@ -34,7 +32,7 @@ def main(
     title: str = "Chat",
 ):
     """Start web chat server.
-    
+
     Args:
         model: LLM model to use
         provider: LLM provider (openai, anthropic, google)
@@ -49,7 +47,7 @@ def main(
         console.print(f"[red]Error: {provider.upper()}_API_KEY not set[/red]")
         console.print(f"Please set your API key: export {provider.upper()}_API_KEY=your-key")
         sys.exit(1)
-    
+
     # Create LLM
     try:
         llm = LLM(
@@ -60,7 +58,7 @@ def main(
     except Exception as e:
         console.print(f"[red]Error creating LLM: {e}[/red]")
         sys.exit(1)
-    
+
     # Create server
     server = ChatServer(
         llm=llm,
@@ -69,14 +67,14 @@ def main(
         host=host,
         cors=cors,
     )
-    
+
     # Print info
-    console.print(f"[green]✓ Web UI Server started[/green]")
+    console.print("[green]✓ Web UI Server started[/green]")
     console.print(f"Model: [cyan]{llm.config.model}[/cyan]")
     console.print(f"URL: [cyan]http://{host}:{port}[/cyan]")
     console.print()
     console.print("Press Ctrl+C to stop")
-    
+
     # Run server
     try:
         server.run()

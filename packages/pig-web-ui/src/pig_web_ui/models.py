@@ -1,6 +1,7 @@
 """Data models for web UI."""
 
-from typing import Literal, Optional
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -9,14 +10,14 @@ class ChatMessage(BaseModel):
 
     role: Literal["user", "assistant", "system"]
     content: str
-    timestamp: Optional[str] = None
+    timestamp: str | None = None
 
 
 class ChatRequest(BaseModel):
     """Chat request from client."""
 
     message: str
-    conversation_id: Optional[str] = None
+    conversation_id: str | None = None
 
 
 class ChatResponse(BaseModel):
@@ -24,12 +25,12 @@ class ChatResponse(BaseModel):
 
     content: str
     role: Literal["assistant"] = "assistant"
-    conversation_id: Optional[str] = None
+    conversation_id: str | None = None
 
 
 class StreamChunk(BaseModel):
     """Streaming response chunk."""
 
     type: Literal["start", "token", "done", "error"]
-    content: Optional[str] = None
-    error: Optional[str] = None
+    content: str | None = None
+    error: str | None = None

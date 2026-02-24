@@ -4,18 +4,16 @@ import json
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
-
-from .models import AgentState
 
 
 class SessionEntry(BaseModel):
     """A single entry in the session tree."""
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    parent_id: Optional[str] = None
+    parent_id: str | None = None
     timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     role: str
     content: str
@@ -28,11 +26,11 @@ class SessionTree:
     def __init__(self):
         """Initialize session tree."""
         self.entries: dict[str, SessionEntry] = {}
-        self.current_id: Optional[str] = None
-        self.root_id: Optional[str] = None
+        self.current_id: str | None = None
+        self.root_id: str | None = None
 
     def add_entry(
-        self, role: str, content: str, parent_id: Optional[str] = None, **metadata
+        self, role: str, content: str, parent_id: str | None = None, **metadata
     ) -> SessionEntry:
         """Add an entry to the tree.
 
@@ -48,9 +46,7 @@ class SessionTree:
         if parent_id is None:
             parent_id = self.current_id
 
-        entry = SessionEntry(
-            parent_id=parent_id, role=role, content=content, metadata=metadata
-        )
+        entry = SessionEntry(parent_id=parent_id, role=role, content=content, metadata=metadata)
 
         self.entries[entry.id] = entry
         self.current_id = entry.id
@@ -74,9 +70,7 @@ class SessionTree:
 
         while current:
             path.insert(0, current)
-            current = (
-                self.entries.get(current.parent_id) if current.parent_id else None
-            )
+            current = self.entries.get(current.parent_id) if current.parent_id else None
 
         return path
 
@@ -181,8 +175,8 @@ class Session:
 
     def __init__(
         self,
-        name: Optional[str] = None,
-        workspace: Optional[str] = None,
+        name: str | None = None,
+        workspace: str | None = None,
         auto_save: bool = True,
     ):
         """Initialize session.
@@ -208,7 +202,7 @@ class Session:
         }
 
     def add_message(
-        self, role: str, content: str, parent_id: Optional[str] = None, **metadata
+        self, role: str, content: str, parent_id: str | None = None, **metadata
     ) -> SessionEntry:
         """Add a message to the session.
 
@@ -249,7 +243,7 @@ class Session:
         if self.auto_save:
             self.save()
 
-    def compact(self, instructions: Optional[str] = None) -> list[SessionEntry]:
+    def compact(self, instructions: str | None = None) -> list[SessionEntry]:
         """Compact old messages.
 
         Args:
@@ -286,7 +280,7 @@ class Session:
         # Return compacted path
         return [compacted] + recent
 
-    def fork(self, entry_id: str, new_name: Optional[str] = None) -> "Session":
+    def fork(self, entry_id: str, new_name: str | None = None) -> "Session":
         """Fork session from a point.
 
         Args:
@@ -306,13 +300,11 @@ class Session:
         # Copy path to entry
         path = self.tree.get_path_to_entry(entry_id)
         for entry in path:
-            new_session.add_message(
-                role=entry.role, content=entry.content, **entry.metadata
-            )
+            new_session.add_message(role=entry.role, content=entry.content, **entry.metadata)
 
         return new_session
 
-    def save(self, path: Optional[Path] = None) -> Path:
+    def save(self, path: Path | None = None) -> Path:
         """Save session to JSONL file.
 
         Args:
@@ -362,9 +354,7 @@ class Session:
             tree_jsonl = f.read()
 
         # Create session
-        session = cls(
-            name=header["name"], workspace=str(path.parent.parent), auto_save=False
-        )
+        session = cls(name=header["name"], workspace=str(path.parent.parent), auto_save=False)
 
         session.id = header["id"]
         session.created_at = datetime.fromisoformat(header["created_at"])
@@ -387,8 +377,6 @@ class Session:
             "updated_at": self.updated_at.isoformat(),
             "entries": len(self.tree.entries),
             "current_path_length": len(self.get_current_conversation()),
-            "branches": len(self.tree.get_branches(self.tree.root_id))
-            if self.tree.root_id
-            else 0,
+            "branches": len(self.tree.get_branches(self.tree.root_id)) if self.tree.root_id else 0,
             "metadata": self.metadata,
         }

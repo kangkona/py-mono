@@ -1,6 +1,6 @@
 """Anthropic provider implementation."""
 
-from typing import AsyncIterator, Iterator, Optional
+from collections.abc import AsyncIterator, Iterator
 
 import anthropic
 
@@ -26,24 +26,21 @@ class AnthropicProvider(Provider):
             max_retries=config.max_retries,
         )
 
-    def _convert_messages(self, messages: list[Message]) -> tuple[Optional[str], list[dict]]:
+    def _convert_messages(self, messages: list[Message]) -> tuple[str | None, list[dict]]:
         """Convert internal messages to Anthropic format.
-        
+
         Returns:
             Tuple of (system_message, messages_list)
         """
         system_message = None
         anthropic_messages = []
-        
+
         for msg in messages:
             if msg.role == "system":
                 system_message = msg.content
             else:
-                anthropic_messages.append({
-                    "role": msg.role,
-                    "content": msg.content
-                })
-        
+                anthropic_messages.append({"role": msg.role, "content": msg.content})
+
         return system_message, anthropic_messages
 
     def complete(
@@ -51,12 +48,12 @@ class AnthropicProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Generate a completion."""
         system, anthropic_messages = self._convert_messages(messages)
-        
+
         response = self.client.messages.create(
             model=model,
             messages=anthropic_messages,
@@ -91,12 +88,12 @@ class AnthropicProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
         """Stream a completion."""
         system, anthropic_messages = self._convert_messages(messages)
-        
+
         with self.client.messages.stream(
             model=model,
             messages=anthropic_messages,
@@ -113,12 +110,12 @@ class AnthropicProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Async generate a completion."""
         system, anthropic_messages = self._convert_messages(messages)
-        
+
         response = await self.async_client.messages.create(
             model=model,
             messages=anthropic_messages,
@@ -152,12 +149,12 @@ class AnthropicProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Async stream a completion."""
         system, anthropic_messages = self._convert_messages(messages)
-        
+
         async with self.async_client.messages.stream(
             model=model,
             messages=anthropic_messages,

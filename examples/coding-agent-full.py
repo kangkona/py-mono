@@ -3,40 +3,41 @@
 import os
 from pathlib import Path
 
+
 def setup_demo_environment():
     """Setup demo environment with extensions and skills."""
-    
+
     # Create workspace
     workspace = Path("demo-workspace")
     workspace.mkdir(exist_ok=True)
-    
+
     # Create sample extension
     ext_dir = workspace / ".agents" / "extensions"
     ext_dir.mkdir(parents=True, exist_ok=True)
-    
+
     (ext_dir / "demo_extension.py").write_text("""
 def extension(api):
     '''Demo extension with custom tools.'''
-    
+
     @api.tool(description="Reverse a string")
     def reverse_string(text: str) -> str:
         return text[::-1]
-    
+
     @api.command("greet", "Say hello")
     def greet_command():
         return "Hello from extension!"
-    
+
     @api.on("tool_call_start")
     def log_tool(event, ctx):
         print(f"🔧 Calling tool: {event.get('tool_name')}")
-    
+
     print("✓ Demo extension loaded")
 """)
-    
+
     # Create sample skill
     skill_dir = workspace / ".agents" / "skills" / "python-best-practices"
     skill_dir.mkdir(parents=True, exist_ok=True)
-    
+
     (skill_dir / "SKILL.md").write_text("""# Python Best Practices
 
 Use this skill when reviewing Python code or suggesting improvements.
@@ -64,7 +65,7 @@ def add(a: int, b: int) -> int:
     return a + b
 ```
 """)
-    
+
     print(f"✓ Demo environment created at: {workspace}")
     return workspace
 
@@ -75,19 +76,19 @@ def main():
     print("py-coding-agent Complete Feature Demo")
     print("=" * 60)
     print()
-    
+
     # Setup demo environment
     print("Setting up demo environment...")
     workspace = setup_demo_environment()
     print()
-    
+
     # Show what's available
     print("Demo includes:")
     print("  ✓ Extension with 1 custom tool + 2 commands")
     print("  ✓ Skill: Python Best Practices")
     print("  ✓ Session management enabled")
     print()
-    
+
     # Show command examples
     print("Try these commands:")
     print()
@@ -111,7 +112,7 @@ def main():
     print()
     print("-" * 60)
     print()
-    
+
     # Check for API key
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:

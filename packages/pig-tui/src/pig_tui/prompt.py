@@ -1,9 +1,10 @@
 """Interactive prompts."""
 
 from pathlib import Path
-from typing import List, Optional
+
 from rich.console import Console
-from rich.prompt import Prompt as RichPrompt, Confirm
+from rich.prompt import Confirm
+from rich.prompt import Prompt as RichPrompt
 
 
 class Prompt:
@@ -16,9 +17,9 @@ class Prompt:
     def ask(
         self,
         question: str,
-        default: Optional[str] = None,
+        default: str | None = None,
         password: bool = False,
-        choices: Optional[list[str]] = None,
+        choices: list[str] | None = None,
     ) -> str:
         """Ask for user input.
 
@@ -75,12 +76,13 @@ class InteractivePrompt:
 
     def __init__(
         self,
-        commands: List[str],
+        commands: list[str],
         workspace: str = ".",
-        history_file: Optional[str] = None,
+        history_file: str | None = None,
     ):
         from prompt_toolkit import PromptSession
         from prompt_toolkit.history import FileHistory, InMemoryHistory
+
         from .advanced import PyCodeCompleter
 
         self.completer = PyCodeCompleter(commands=commands, workspace=workspace)

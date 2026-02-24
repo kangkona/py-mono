@@ -1,16 +1,16 @@
 """Main Agent class with tool calling and state management."""
 
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
 
 from pig_llm import LLM, Message, Response
 from rich.console import Console
 
-from .models import AgentState, ToolCall, ToolResult
+from .message_queue import MessageQueue
+from .models import AgentState
 from .registry import ToolRegistry
 from .tools import Tool
-from .message_queue import MessageQueue
 
 
 class Agent:
@@ -19,12 +19,12 @@ class Agent:
     def __init__(
         self,
         name: str = "Agent",
-        llm: Optional[LLM] = None,
-        tools: Optional[list[Tool]] = None,
-        system_prompt: Optional[str] = None,
+        llm: LLM | None = None,
+        tools: list[Tool] | None = None,
+        system_prompt: str | None = None,
         max_iterations: int = 10,
-        on_tool_start: Optional[Callable] = None,
-        on_tool_end: Optional[Callable] = None,
+        on_tool_start: Callable | None = None,
+        on_tool_end: Callable | None = None,
         verbose: bool = False,
     ):
         """Initialize agent.
@@ -102,70 +102,78 @@ class Agent:
             # Check if tool calls are needed
             if hasattr(response, "tool_calls") and response.tool_calls:
                 self._log(f"[yellow]Tool calls requested: {len(response.tool_calls)}[/yellow]")
-                
+
                 # Execute tools
                 tool_results = []
                 for tool_call in response.tool_calls:
                     tool_name = tool_call.get("function", {}).get("name")
                     tool_args = json.loads(tool_call.get("function", {}).get("arguments", "{}"))
-                    
+
                     self._log(f"[cyan]→ Calling tool: {tool_name}({tool_args})[/cyan]")
-                    
+
                     if self.on_tool_start:
                         self.on_tool_start(tool_name, tool_args)
 
                     try:
                         result = self.registry.execute(tool_name, **tool_args)
-                        tool_results.append({
-                            "tool_call_id": tool_call.get("id"),
-                            "role": "tool",
-                            "name": tool_name,
-                            "content": str(result),
-                        })
+                        tool_results.append(
+                            {
+                                "tool_call_id": tool_call.get("id"),
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": str(result),
+                            }
+                        )
                         self._log(f"[green]✓ Result: {result}[/green]")
-                        
+
                         if self.on_tool_end:
                             self.on_tool_end(tool_name, result)
                     except Exception as e:
                         error_msg = f"Error: {e}"
-                        tool_results.append({
-                            "tool_call_id": tool_call.get("id"),
-                            "role": "tool",
-                            "name": tool_name,
-                            "content": error_msg,
-                        })
+                        tool_results.append(
+                            {
+                                "tool_call_id": tool_call.get("id"),
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": error_msg,
+                            }
+                        )
                         self._log(f"[red]✗ {error_msg}[/red]")
 
                 # Add assistant message and tool results to history
-                self.history.append(Message(
-                    role="assistant",
-                    content=response.content or "",
-                    metadata={"tool_calls": response.tool_calls}
-                ))
+                self.history.append(
+                    Message(
+                        role="assistant",
+                        content=response.content or "",
+                        metadata={"tool_calls": response.tool_calls},
+                    )
+                )
                 for tool_result in tool_results:
-                    self.history.append(Message(
-                        role="tool",
-                        content=tool_result["content"],
-                        metadata={
-                            "tool_call_id": tool_result["tool_call_id"],
-                            "name": tool_result["name"]
-                        }
-                    ))
-                
+                    self.history.append(
+                        Message(
+                            role="tool",
+                            content=tool_result["content"],
+                            metadata={
+                                "tool_call_id": tool_result["tool_call_id"],
+                                "name": tool_result["name"],
+                            },
+                        )
+                    )
+
                 # Check for steering messages after tool execution
                 if check_queue and self.message_queue.has_steering():
                     steering = self.message_queue.get_steering_messages()
                     for msg in steering:
                         self._log(f"[yellow]⚡ Steering: {msg.content}[/yellow]")
                         self.history.append(Message(role="user", content=msg.content))
-                
+
                 # Continue loop to get final response
                 continue
             else:
                 # No tool calls, we have final response
                 self.history.append(Message(role="assistant", content=response.content))
                 self._log(f"[bold green]Agent:[/bold green] {response.content}")
-                
+
                 # Check for follow-up messages
                 if check_queue and self.message_queue.has_followup():
                     followup = self.message_queue.get_followup_messages()
@@ -173,7 +181,7 @@ class Agent:
                         # Process first follow-up recursively
                         self._log(f"[cyan]→ Follow-up: {followup[0].content}[/cyan]")
                         return self.run(followup[0].content, check_queue=True)
-                
+
                 return response
 
         # Max iterations reached
@@ -219,7 +227,7 @@ class Agent:
         Path(path).write_text(state.model_dump_json(indent=2))
 
     @classmethod
-    def from_state(cls, path: str | Path, llm: Optional[LLM] = None) -> "Agent":
+    def from_state(cls, path: str | Path, llm: LLM | None = None) -> "Agent":
         """Load agent from saved state.
 
         Args:
@@ -231,16 +239,16 @@ class Agent:
         """
         state_json = Path(path).read_text()
         state = AgentState.model_validate_json(state_json)
-        
+
         agent = cls(
             name=state.name,
             llm=llm,
             system_prompt=state.system_prompt,
         )
-        
+
         # Restore history
         agent.history = [Message(**msg) for msg in state.messages]
-        
+
         return agent
 
     def clear_history(self) -> None:

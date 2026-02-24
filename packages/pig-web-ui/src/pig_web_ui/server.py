@@ -1,15 +1,14 @@
 """Chat server with FastAPI."""
 
 import asyncio
-import json
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import AsyncIterator, Optional
 
-from fastapi import FastAPI, Request, UploadFile, File, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.middleware.cors import CORSMiddleware
 
 from .models import ChatMessage, ChatRequest, StreamChunk
 
@@ -25,7 +24,7 @@ class ChatServer:
         port: int = 8000,
         host: str = "127.0.0.1",
         cors: bool = False,
-        theme: Optional[dict] = None,
+        theme: dict | None = None,
     ):
         """Initialize chat server.
 
@@ -165,25 +164,31 @@ class ChatServer:
                             # Stream via WebSocket
                             full_content = ""
                             for chunk in self.llm.stream(message):
-                                await websocket.send_json({
-                                    "type": "token",
-                                    "content": chunk.content,
-                                })
+                                await websocket.send_json(
+                                    {
+                                        "type": "token",
+                                        "content": chunk.content,
+                                    }
+                                )
                                 full_content += chunk.content
                             content = full_content
                         else:
                             response = self.llm.complete(message)
                             content = response.content
-                            await websocket.send_json({
-                                "type": "token",
-                                "content": content,
-                            })
+                            await websocket.send_json(
+                                {
+                                    "type": "token",
+                                    "content": content,
+                                }
+                            )
                     else:
                         content = "No LLM configured"
-                        await websocket.send_json({
-                            "type": "token",
-                            "content": content,
-                        })
+                        await websocket.send_json(
+                            {
+                                "type": "token",
+                                "content": content,
+                            }
+                        )
 
                     # Add to history
                     if content:
@@ -223,11 +228,9 @@ class ChatServer:
                 if hasattr(self.llm, "stream"):
                     # Stream tokens
                     for chunk in self.llm.stream(message):
-                        yield self._format_sse(
-                            StreamChunk(type="token", content=chunk.content)
-                        )
+                        yield self._format_sse(StreamChunk(type="token", content=chunk.content))
                         await asyncio.sleep(0)  # Allow event loop to process
-                    
+
                     # Get full content from history if available
                     content = ""  # Stream already sent content
                 else:
@@ -235,14 +238,10 @@ class ChatServer:
                     response = self.llm.complete(message)
                     content = response.content
                     # Send as single token
-                    yield self._format_sse(
-                        StreamChunk(type="token", content=content)
-                    )
+                    yield self._format_sse(StreamChunk(type="token", content=content))
             else:
                 content = "No LLM or agent configured"
-                yield self._format_sse(
-                    StreamChunk(type="token", content=content)
-                )
+                yield self._format_sse(StreamChunk(type="token", content=content))
 
             # Add assistant message to history
             if content:  # Only add if we have content
@@ -253,9 +252,7 @@ class ChatServer:
 
         except Exception as e:
             # Send error event
-            yield self._format_sse(
-                StreamChunk(type="error", error=str(e))
-            )
+            yield self._format_sse(StreamChunk(type="error", error=str(e)))
 
     def _format_sse(self, chunk: StreamChunk) -> str:
         """Format chunk as SSE.

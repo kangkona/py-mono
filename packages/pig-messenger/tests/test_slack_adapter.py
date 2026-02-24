@@ -2,18 +2,14 @@
 
 import asyncio
 import sys
-from datetime import datetime
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from pig_messenger.message import Attachment, UniversalMessage
-
 
 # ---------------------------------------------------------------------------
 # Helper: build a SlackAdapter with all Slack SDK calls mocked.
 # ---------------------------------------------------------------------------
+
 
 def _make_adapter(bot_user_id="U_BOT"):
     """Create a SlackAdapter with mocked Slack SDK."""
@@ -50,6 +46,7 @@ def _make_adapter(bot_user_id="U_BOT"):
     saved_adapter = sys.modules.pop(adapter_key, None)
     try:
         from pig_messenger.adapters.slack import SlackAdapter
+
         adapter = SlackAdapter(app_token="xapp-test", bot_token="xoxb-test")
     finally:
         for m, orig in saved.items():
@@ -66,6 +63,7 @@ def _make_adapter(bot_user_id="U_BOT"):
 # ---------------------------------------------------------------------------
 # Initialization
 # ---------------------------------------------------------------------------
+
 
 class TestSlackAdapterInit:
     def test_auto_detects_bot_user_id(self):
@@ -95,8 +93,11 @@ class TestSlackAdapterInit:
         saved_adapter = sys.modules.pop(adapter_key, None)
         try:
             from pig_messenger.adapters.slack import SlackAdapter
+
             adapter = SlackAdapter(
-                app_token="xapp-test", bot_token="xoxb-test", bot_user_id="U_EXPLICIT",
+                app_token="xapp-test",
+                bot_token="xoxb-test",
+                bot_user_id="U_EXPLICIT",
             )
             assert adapter.bot_user_id == "U_EXPLICIT"
             mock_client.auth_test.assert_not_called()
@@ -118,6 +119,7 @@ class TestSlackAdapterInit:
 # Message conversion (_handle_slack_message)
 # ---------------------------------------------------------------------------
 
+
 class TestHandleSlackMessage:
     def _run(self, coro):
         return asyncio.get_event_loop().run_until_complete(coro)
@@ -128,7 +130,10 @@ class TestHandleSlackMessage:
             "user": {"real_name": "Alice", "name": "alice", "profile": {"email": "alice@test.com"}}
         }
         captured = []
-        async def handler(msg): captured.append(msg)
+
+        async def handler(msg):
+            captured.append(msg)
+
         adapter.set_message_handler(handler)
         self._run(adapter._handle_slack_message(slack_event_mention, is_mention=True))
 
@@ -147,7 +152,10 @@ class TestHandleSlackMessage:
             "user": {"real_name": "Bob", "name": "bob", "profile": {}}
         }
         captured = []
-        async def handler(msg): captured.append(msg)
+
+        async def handler(msg):
+            captured.append(msg)
+
         adapter.set_message_handler(handler)
         self._run(adapter._handle_slack_message(slack_event_dm, is_dm=True))
 
@@ -160,7 +168,10 @@ class TestHandleSlackMessage:
             "user": {"real_name": "Alice", "name": "alice", "profile": {}}
         }
         captured = []
-        async def handler(msg): captured.append(msg)
+
+        async def handler(msg):
+            captured.append(msg)
+
         adapter.set_message_handler(handler)
         self._run(adapter._handle_slack_message(slack_event_with_file, is_mention=True))
 
@@ -176,7 +187,10 @@ class TestHandleSlackMessage:
             "user": {"real_name": "Alice", "name": "alice", "profile": {}}
         }
         captured = []
-        async def handler(msg): captured.append(msg)
+
+        async def handler(msg):
+            captured.append(msg)
+
         adapter.set_message_handler(handler)
         self._run(adapter._handle_slack_message(slack_event_thread, is_mention=True))
 
@@ -187,7 +201,10 @@ class TestHandleSlackMessage:
         adapter, client, _, _ = _make_adapter()
         client.users_info.side_effect = Exception("API error")
         captured = []
-        async def handler(msg): captured.append(msg)
+
+        async def handler(msg):
+            captured.append(msg)
+
         adapter.set_message_handler(handler)
         self._run(adapter._handle_slack_message(slack_event_mention, is_mention=True))
 
@@ -196,9 +213,7 @@ class TestHandleSlackMessage:
 
     def test_no_handler_does_not_crash(self, slack_event_dm):
         adapter, client, _, _ = _make_adapter()
-        client.users_info.return_value = {
-            "user": {"real_name": "X", "name": "x", "profile": {}}
-        }
+        client.users_info.return_value = {"user": {"real_name": "X", "name": "x", "profile": {}}}
         # on_message is None — should not raise
         self._run(adapter._handle_slack_message(slack_event_dm, is_dm=True))
 
@@ -206,6 +221,7 @@ class TestHandleSlackMessage:
 # ---------------------------------------------------------------------------
 # send_message
 # ---------------------------------------------------------------------------
+
 
 class TestSendMessage:
     def _run(self, coro):
@@ -217,7 +233,9 @@ class TestSendMessage:
         ts = self._run(adapter.send_message("C_GENERAL", "hello"))
         assert ts == "1700000010.000500"
         client.chat_postMessage.assert_called_once_with(
-            channel="C_GENERAL", text="hello", thread_ts=None,
+            channel="C_GENERAL",
+            text="hello",
+            thread_ts=None,
         )
 
     def test_send_threaded_reply(self):
@@ -225,13 +243,16 @@ class TestSendMessage:
         client.chat_postMessage.return_value = {"ts": "1700000011.000600"}
         self._run(adapter.send_message("C_GENERAL", "reply", thread_id="1700000000.000100"))
         client.chat_postMessage.assert_called_once_with(
-            channel="C_GENERAL", text="reply", thread_ts="1700000000.000100",
+            channel="C_GENERAL",
+            text="reply",
+            thread_ts="1700000000.000100",
         )
 
 
 # ---------------------------------------------------------------------------
 # upload_file
 # ---------------------------------------------------------------------------
+
 
 class TestUploadFile:
     def _run(self, coro):
@@ -245,13 +266,17 @@ class TestUploadFile:
         fid = self._run(adapter.upload_file("C_GENERAL", f, caption="here"))
         assert fid == "F_NEW"
         client.files_upload_v2.assert_called_once_with(
-            channel="C_GENERAL", file=str(f), initial_comment="here", thread_ts=None,
+            channel="C_GENERAL",
+            file=str(f),
+            initial_comment="here",
+            thread_ts=None,
         )
 
 
 # ---------------------------------------------------------------------------
 # get_history
 # ---------------------------------------------------------------------------
+
 
 class TestGetHistory:
     def _run(self, coro):
@@ -276,6 +301,7 @@ class TestGetHistory:
 # download_file
 # ---------------------------------------------------------------------------
 
+
 class TestDownloadFile:
     def _run(self, coro):
         return asyncio.get_event_loop().run_until_complete(coro)
@@ -283,8 +309,11 @@ class TestDownloadFile:
     def test_download(self):
         adapter, client, _, _ = _make_adapter()
         att = Attachment(
-            id="F1", filename="f.txt", content_type="text/plain",
-            size=5, url="https://files.slack.com/f.txt",
+            id="F1",
+            filename="f.txt",
+            content_type="text/plain",
+            size=5,
+            url="https://files.slack.com/f.txt",
         )
         with patch("httpx.AsyncClient") as MockHTTP:
             mock_resp = MagicMock()
@@ -306,6 +335,7 @@ class TestDownloadFile:
 # start / stop
 # ---------------------------------------------------------------------------
 
+
 class TestStartStop:
     def test_start_creates_socket_handler(self):
         adapter, _, _, mock_smh_cls = _make_adapter()
@@ -313,6 +343,7 @@ class TestStartStop:
         mock_smh_cls.return_value = mock_handler
 
         import pig_messenger.adapters.slack as slack_mod
+
         orig = getattr(slack_mod, "SocketModeHandler", None)
         slack_mod.SocketModeHandler = mock_smh_cls
         try:
@@ -338,6 +369,7 @@ class TestStartStop:
 # ---------------------------------------------------------------------------
 # Bot-message filtering
 # ---------------------------------------------------------------------------
+
 
 class TestMessageFiltering:
     def test_skips_own_messages(self, slack_event_dm):

@@ -1,15 +1,22 @@
 """Coding agent with file operations and code generation."""
 
 from pathlib import Path
-from typing import Optional
 
-from pig_llm import LLM
-from pig_agent_core import Agent, Session, ExtensionManager, SkillManager, ContextManager, PromptManager, SessionManager
+from pig_agent_core import (
+    Agent,
+    ContextManager,
+    ExtensionManager,
+    PromptManager,
+    Session,
+    SessionManager,
+    SkillManager,
+)
 from pig_agent_core.tools import Tool
+from pig_llm import LLM
 from pig_tui import ChatUI, InteractivePrompt
 
-from .tools import FileTools, CodeTools, ShellTools
 from .file_reference import FileReferenceParser
+from .tools import CodeTools, FileTools, ShellTools
 
 
 class CodingAgent:
@@ -17,11 +24,11 @@ class CodingAgent:
 
     def __init__(
         self,
-        llm: Optional[LLM] = None,
+        llm: LLM | None = None,
         workspace: str = ".",
         verbose: bool = True,
-        session_name: Optional[str] = None,
-        session_path: Optional[Path] = None,
+        session_name: str | None = None,
+        session_path: Path | None = None,
         enable_extensions: bool = True,
         enable_skills: bool = True,
     ):
@@ -147,11 +154,28 @@ When generating code, provide clean, well-documented, production-ready code.
 
     # Base slash commands for tab completion
     BASE_COMMANDS = [
-        "/help", "/exit", "/quit", "/clear", "/files", "/status",
-        "/tree", "/fork", "/compact", "/session", "/sessions",
-        "/skills", "/extensions", "/prompts", "/reload",
-        "/config", "/queue", "/export", "/share", "/model",
-        "/login", "/logout",
+        "/help",
+        "/exit",
+        "/quit",
+        "/clear",
+        "/files",
+        "/status",
+        "/tree",
+        "/fork",
+        "/compact",
+        "/session",
+        "/sessions",
+        "/skills",
+        "/extensions",
+        "/prompts",
+        "/reload",
+        "/config",
+        "/queue",
+        "/export",
+        "/share",
+        "/model",
+        "/login",
+        "/logout",
     ]
 
     def _build_commands(self) -> list[str]:
@@ -201,7 +225,7 @@ When generating code, provide clean, well-documented, production-ready code.
                 if user_input.startswith("/"):
                     self._handle_command(user_input)
                     continue
-                
+
                 # Check for queue commands
                 if user_input.startswith("!"):
                     # !message = steering (interrupt)
@@ -209,7 +233,7 @@ When generating code, provide clean, well-documented, production-ready code.
                     self.agent.message_queue.add_steering(steering_msg)
                     self.ui.system(f"⚡ Queued steering message: {steering_msg[:50]}...")
                     continue
-                
+
                 if user_input.startswith(">>"):
                     # >>message = follow-up (wait until done)
                     followup_msg = user_input.lstrip(">").strip()
@@ -222,15 +246,15 @@ When generating code, provide clean, well-documented, production-ready code.
                     preview = self.file_ref_parser.get_reference_preview(user_input)
                     if preview:
                         self.ui.system(preview)
-                        
+
                         # Expand references
                         expanded_input = self.file_ref_parser.expand_references(user_input)
-                        
+
                         # Show expansion if significant
                         if len(expanded_input) > len(user_input) + 100:
                             added = len(expanded_input) - len(user_input)
                             self.ui.system(f"→ Added {added} chars from files")
-                        
+
                         # Use expanded input
                         user_input = expanded_input
 
@@ -242,7 +266,7 @@ When generating code, provide clean, well-documented, production-ready code.
 
                 # Display response
                 self.ui.assistant(response.content)
-                
+
                 # Add to session
                 if self.session:
                     self.session.add_message("user", user_input)
@@ -257,7 +281,6 @@ When generating code, provide clean, well-documented, production-ready code.
                 if cleared:
                     self.ui.system(f"\nCleared {len(cleared)} queued messages")
             self.ui.system("\nGoodbye!")
-
 
     def _handle_command(self, command: str) -> None:
         """Handle slash commands.
@@ -276,7 +299,8 @@ When generating code, provide clean, well-documented, production-ready code.
             self.ui.system("Conversation cleared")
 
         elif cmd == "/help":
-            self.ui.panel("""
+            self.ui.panel(
+                """
 **Available Commands:**
 
 /help       - Show this help
@@ -289,21 +313,26 @@ When generating code, provide clean, well-documented, production-ready code.
 - read_file, write_file, list_files
 - generate_code, explain_code
 - run_command, git_status, git_diff
-            """, title="Help")
+            """,
+                title="Help",
+            )
 
         elif cmd == "/files":
             files = FileTools(str(self.workspace)).list_files()
             self.ui.panel(files, title="Files")
 
         elif cmd == "/status":
-            self.ui.panel(f"""
+            self.ui.panel(
+                f"""
 **Agent Status**
 
 Model: {self.agent.llm.config.model}
 Workspace: {self.workspace}
 Messages: {len(self.agent.history)}
 Tools: {len(self.agent.registry)}
-            """, title="Status")
+            """,
+                title="Status",
+            )
 
         elif cmd.startswith("/tree"):
             self._show_tree()
@@ -407,7 +436,7 @@ Tools: {len(self.agent.registry)}
         tree_text += f"\nCurrent path: {len(path)}"
         self.ui.panel(tree_text, title="Session Tree")
 
-    def _fork_session(self, fork_name: Optional[str]):
+    def _fork_session(self, fork_name: str | None):
         """Fork current session."""
         if not self.session:
             self.ui.error("No session loaded")
@@ -427,7 +456,7 @@ Tools: {len(self.agent.registry)}
         self.ui.system(f"  Copied {len(fork.tree.entries)} entries")
         self.ui.system(f"  Saved to: {save_path}")
 
-    def _compact_session(self, instructions: Optional[str]):
+    def _compact_session(self, instructions: str | None):
         """Compact session messages."""
         if not self.session:
             self.ui.error("No session loaded")
@@ -444,17 +473,17 @@ Tools: {len(self.agent.registry)}
         """List available sessions."""
         session_mgr = SessionManager(self.workspace)
         sessions = session_mgr.list_sessions(limit=20)
-        
+
         if not sessions:
             self.ui.system("No sessions found")
             self.ui.system(f"Sessions are saved to: {self.workspace}/.sessions/")
             return
-        
+
         sessions_text = session_mgr.format_session_list(sessions)
-        
+
         if len(sessions) == 20:
             sessions_text += "\n\n... (showing most recent 20)"
-        
+
         self.ui.panel(sessions_text, title=f"Available Sessions ({len(sessions)})")
         self.ui.system("Use `pig-code --resume` to select a session")
 
@@ -668,37 +697,38 @@ Files are automatically read and added to context!
             for var in template.variables:
                 vars_text += f"• {var}\n"
             vars_text += f"\n**Usage**: `/{template_name} {' '.join(f'{v}=value' for v in template.variables)}`"
-            vars_text += f"\n\n**Example**: `/{template_name} {template.variables[0]}=\"example\"`"
+            vars_text += f'\n\n**Example**: `/{template_name} {template.variables[0]}="example"`'
             self.ui.panel(vars_text, title=f"Template: {template_name}")
             return
 
         # Render template
         rendered = template.render(**kwargs)
-        
+
         # Display nicely
         self.ui.panel(rendered, title=f"Expanded: /{template_name}")
-        
+
         # Automatically send to agent
         self.ui.system("Sending prompt to agent...")
-        
+
         # Add to session
         if self.session:
             self.session.add_message("user", rendered)
-        
+
         # Get response
         response = self.agent.run(rendered)
-        
+
         # Display response
         self.ui.assistant(response.content)
 
-    def _export_session(self, filename: Optional[str]):
+    def _export_session(self, filename: str | None):
         """Export session to HTML."""
         if not self.session:
             self.ui.error("No session to export")
             return
 
-        from pig_agent_core import SessionExporter
         from pathlib import Path
+
+        from pig_agent_core import SessionExporter
 
         # Determine output path
         if filename:
@@ -706,6 +736,7 @@ Files are automatically read and added to context!
         else:
             # Auto-generate
             from datetime import datetime
+
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_path = Path(f"{self.session.name}_{timestamp}.html")
 
@@ -718,7 +749,7 @@ Files are automatically read and added to context!
         except Exception as e:
             self.ui.error(f"Export failed: {e}")
 
-    def _switch_model(self, model_name: Optional[str]):
+    def _switch_model(self, model_name: str | None):
         """Switch LLM model.
 
         Args:
@@ -774,8 +805,6 @@ Full: {current}
 
     def _login(self):
         """Login to a provider via OAuth."""
-        from pig_agent_core import AuthManager, OAuthProvider
-        from pig_tui import Prompt
 
         # Supported providers (examples)
         providers_config = {
@@ -808,7 +837,7 @@ For now, use API keys:
             title="OAuth Login",
         )
 
-    def _logout(self, provider: Optional[str]):
+    def _logout(self, provider: str | None):
         """Logout from a provider.
 
         Args:
@@ -835,6 +864,7 @@ For now, use API keys:
             return
 
         import os
+
         from pig_agent_core import GistSharer
 
         # Get GitHub token
@@ -855,7 +885,7 @@ For now, use API keys:
                 self.session, public=False, description=f"pig-mono: {self.session.name}"
             )
 
-            self.ui.system(f"✓ Shared as private gist!")
+            self.ui.system("✓ Shared as private gist!")
             self.ui.panel(
                 f"""
 **Gist Created**
@@ -875,45 +905,45 @@ Share this URL to give others access.
     def _show_queue(self):
         """Show message queue status."""
         queue = self.agent.message_queue
-        
+
         if not queue:
             self.ui.system("Message queue is empty")
             self.ui.system("\nQueue messages while agent is working:")
             self.ui.system("  !message    - Steering (interrupt after current tool)")
             self.ui.system("  >>message   - Follow-up (wait until done)")
             return
-        
+
         queue_text = f"**Message Queue** ({len(queue)} messages)\n\n"
-        
+
         steering = [m for m in queue.queue if m.type.value == "steering"]
         followup = [m for m in queue.queue if m.type.value == "followup"]
-        
+
         if steering:
             queue_text += "**Steering Messages** (interrupt):\n"
             for i, msg in enumerate(steering, 1):
                 preview = msg.content[:60]
                 queue_text += f"{i}. {preview}...\n"
             queue_text += "\n"
-        
+
         if followup:
             queue_text += "**Follow-up Messages** (after completion):\n"
             for i, msg in enumerate(followup, 1):
                 preview = msg.content[:60]
                 queue_text += f"{i}. {preview}...\n"
-        
-        queue_text += f"\n**Modes**:\n"
+
+        queue_text += "\n**Modes**:\n"
         queue_text += f"• Steering: {queue.steering_mode}\n"
         queue_text += f"• Follow-up: {queue.followup_mode}"
-        
+
         self.ui.panel(queue_text, title="Queue")
 
     def _show_config(self):
         """Show current configuration."""
         from .config import ConfigManager
-        
+
         config_mgr = ConfigManager(self.workspace)
         config = config_mgr.load_config()
-        
+
         config_text = f"""
 **Agent Configuration**
 
@@ -943,7 +973,7 @@ Theme: {config.theme}
 Global: ~/.agents/config.json
 Project: .agents/config.json
         """
-        
+
         self.ui.panel(config_text, title="Configuration")
         self.ui.system("Edit config files or use environment variables")
 

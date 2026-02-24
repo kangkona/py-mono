@@ -1,8 +1,8 @@
 """Progress indicators."""
 
-from typing import Optional
-from rich.progress import Progress as RichProgress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 from rich.console import Console
+from rich.progress import BarColumn, SpinnerColumn, TaskProgressColumn, TextColumn
+from rich.progress import Progress as RichProgress
 
 
 class Progress:
@@ -26,7 +26,7 @@ class Progress:
         """Exit context."""
         self.progress.__exit__(*args)
 
-    def add_task(self, description: str, total: Optional[int] = 100):
+    def add_task(self, description: str, total: int | None = 100):
         """Add a task to track.
 
         Args:

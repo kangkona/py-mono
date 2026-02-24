@@ -1,12 +1,11 @@
 """Universal messenger bot core."""
 
-from typing import Dict, Optional
 from pathlib import Path
 
-from pig_agent_core import Agent, Session
+from pig_agent_core import Agent
 
+from .message import UniversalMessage
 from .platform import MessagePlatform
-from .message import UniversalMessage, UniversalResponse
 from .session_manager import MultiPlatformSessionManager
 
 
@@ -16,7 +15,7 @@ class MessengerBot:
     def __init__(
         self,
         agent: Agent,
-        workspace: Optional[Path] = None,
+        workspace: Path | None = None,
         enable_sessions: bool = True,
     ):
         """Initialize messenger bot.
@@ -30,7 +29,7 @@ class MessengerBot:
         self.workspace = Path(workspace) if workspace else Path.cwd() / ".messenger"
         self.workspace.mkdir(exist_ok=True)
 
-        self.platforms: Dict[str, MessagePlatform] = {}
+        self.platforms: dict[str, MessagePlatform] = {}
         self.session_manager = None
 
         if enable_sessions:
@@ -68,9 +67,7 @@ class MessengerBot:
             # Get or create session for this channel
             session = None
             if self.session_manager:
-                session = self.session_manager.get_session(
-                    message.platform, message.channel_id
-                )
+                session = self.session_manager.get_session(message.platform, message.channel_id)
 
                 # Add user message to session
                 session.add_message("user", message.text)
@@ -131,11 +128,9 @@ class MessengerBot:
         else:
             # Multiple platforms — run in threads
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                futures = {
-                    executor.submit(p.start): name
-                    for name, p in self.platforms.items()
-                }
+                futures = {executor.submit(p.start): name for name, p in self.platforms.items()}
                 try:
                     concurrent.futures.wait(futures)
                 except KeyboardInterrupt:

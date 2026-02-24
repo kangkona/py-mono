@@ -1,8 +1,9 @@
 """Tool system for agents."""
 
 import inspect
-import json
-from typing import Any, Callable, Optional, Type, get_type_hints
+from collections.abc import Callable
+from typing import Any, get_type_hints
+
 from pydantic import BaseModel, create_model
 
 
@@ -12,9 +13,9 @@ class Tool:
     def __init__(
         self,
         func: Callable,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        params_model: Optional[Type[BaseModel]] = None,
+        name: str | None = None,
+        description: str | None = None,
+        params_model: type[BaseModel] | None = None,
     ):
         """Initialize tool.
 
@@ -39,6 +40,7 @@ class Tool:
             return self
         # Return a bound copy of this Tool
         import functools
+
         bound = Tool(
             func=functools.partial(self.func, obj),
             name=self.name,
@@ -47,25 +49,22 @@ class Tool:
         )
         return bound
 
-    def _create_params_model(self, func: Callable) -> Type[BaseModel]:
+    def _create_params_model(self, func: Callable) -> type[BaseModel]:
         """Create Pydantic model from function signature."""
         sig = inspect.signature(func)
         type_hints = get_type_hints(func)
-        
+
         fields = {}
         for param_name, param in sig.parameters.items():
             if param_name == "self":
                 continue
-                
+
             param_type = type_hints.get(param_name, Any)
             default = param.default if param.default != inspect.Parameter.empty else ...
-            
+
             fields[param_name] = (param_type, default)
-        
-        return create_model(
-            f"{self.name.title()}Params",
-            **fields
-        )
+
+        return create_model(f"{self.name.title()}Params", **fields)
 
     def to_openai_schema(self) -> dict[str, Any]:
         """Convert tool to OpenAI function calling schema."""
@@ -75,7 +74,7 @@ class Tool:
                 "name": self.name,
                 "description": self.description,
                 "parameters": self.params_model.model_json_schema(),
-            }
+            },
         }
 
     def execute(self, **kwargs) -> Any:
@@ -102,11 +101,11 @@ class Tool:
 
 
 def tool(
-    func: Optional[Callable] = None,
+    func: Callable | None = None,
     *,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    params_model: Optional[Type[BaseModel]] = None,
+    name: str | None = None,
+    description: str | None = None,
+    params_model: type[BaseModel] | None = None,
 ) -> Callable:
     """Decorator to create a tool from a function.
 
@@ -119,6 +118,7 @@ def tool(
         def another_tool(x: int, y: int = 10) -> int:
             return x + y
     """
+
     def decorator(f: Callable) -> Tool:
         return Tool(
             func=f,

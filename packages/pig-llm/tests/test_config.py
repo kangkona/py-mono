@@ -32,7 +32,7 @@ def test_config_temperature_validation():
     """Test temperature validation."""
     with pytest.raises(ValueError):
         Config(temperature=-0.1)
-    
+
     with pytest.raises(ValueError):
         Config(temperature=2.1)
 

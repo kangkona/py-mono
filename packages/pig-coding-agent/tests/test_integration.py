@@ -1,8 +1,8 @@
 """Integration tests for py-coding-agent with session/extension/skills."""
 
+from unittest.mock import Mock
+
 import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch
 from pig_coding_agent.agent import CodingAgent
 
 
@@ -30,7 +30,7 @@ def test_coding_agent_with_session(mock_llm, temp_workspace):
         session_name="test-session",
         verbose=False,
     )
-    
+
     # Session should be created
     assert agent.session is not None
     assert agent.session.name == "test-session"
@@ -45,9 +45,9 @@ def test_coding_agent_load_existing_session(mock_llm, temp_workspace):
         session_name="existing",
         verbose=False,
     )
-    
+
     session_path = agent1.session.save()
-    
+
     # Load it
     agent2 = CodingAgent(
         llm=mock_llm,
@@ -55,7 +55,7 @@ def test_coding_agent_load_existing_session(mock_llm, temp_workspace):
         session_path=session_path,
         verbose=False,
     )
-    
+
     assert agent2.session.name == "existing"
 
 
@@ -64,26 +64,26 @@ def test_coding_agent_with_extensions(mock_llm, temp_workspace):
     # Create extension
     ext_dir = temp_workspace / ".agents" / "extensions"
     ext_dir.mkdir(parents=True)
-    
+
     ext_file = ext_dir / "test_ext.py"
     ext_file.write_text("""
 def extension(api):
     @api.tool(description="Test tool")
     def test_tool(x: int) -> int:
         return x * 2
-    
+
     @api.command("test")
     def test_cmd():
         return "Test command executed"
 """)
-    
+
     agent = CodingAgent(
         llm=mock_llm,
         workspace=str(temp_workspace),
         enable_extensions=True,
         verbose=False,
     )
-    
+
     # Extension should be loaded
     assert agent.extension_manager is not None
     assert len(agent.extension_manager.extensions) > 0
@@ -147,12 +147,12 @@ def test_fork_command(mock_llm, temp_workspace):
         workspace=str(temp_workspace),
         verbose=False,
     )
-    
+
     agent.session.add_message("user", "Message")
-    
+
     # Run /fork command
     agent._handle_command("/fork test-fork")
-    
+
     # Should save the fork
     fork_file = temp_workspace / ".sessions" / "test-fork.jsonl"
     assert fork_file.exists()

@@ -1,8 +1,8 @@
 """Data models for LLM interactions."""
 
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class Message(BaseModel):
@@ -10,7 +10,7 @@ class Message(BaseModel):
 
     role: Literal["system", "user", "assistant", "tool"]
     content: str
-    metadata: Optional[dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 
 
 class Response(BaseModel):
@@ -18,18 +18,18 @@ class Response(BaseModel):
 
     content: str
     model: str
-    usage: Optional[dict[str, int]] = None
-    finish_reason: Optional[str] = None
-    tool_calls: Optional[list[dict[str, Any]]] = None
-    metadata: Optional[dict[str, Any]] = None
+    usage: dict[str, int] | None = None
+    finish_reason: str | None = None
+    tool_calls: list[dict[str, Any]] | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class StreamChunk(BaseModel):
     """A chunk from a streaming response."""
 
     content: str
-    finish_reason: Optional[str] = None
-    metadata: Optional[dict[str, Any]] = None
+    finish_reason: str | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class Usage(BaseModel):

@@ -2,8 +2,8 @@
 
 import json
 import sys
-from typing import Any, Optional
 from datetime import datetime
+from typing import Any
 
 
 class JSONOutputMode:
@@ -42,9 +42,7 @@ class JSONOutputMode:
             content: Message content
             **metadata: Additional metadata
         """
-        self.emit_event(
-            "message", {"role": role, "content": content, "metadata": metadata}
-        )
+        self.emit_event("message", {"role": role, "content": content, "metadata": metadata})
 
     def tool_call_start(self, tool_name: str, arguments: dict) -> None:
         """Emit tool call start event.
@@ -55,7 +53,7 @@ class JSONOutputMode:
         """
         self.emit_event("tool_call_start", {"tool": tool_name, "args": arguments})
 
-    def tool_call_end(self, tool_name: str, result: Any, error: Optional[str] = None) -> None:
+    def tool_call_end(self, tool_name: str, result: Any, error: str | None = None) -> None:
         """Emit tool call end event.
 
         Args:
@@ -76,7 +74,7 @@ class JSONOutputMode:
         """
         self.emit_event("token", {"content": content})
 
-    def done(self, final_content: Optional[str] = None) -> None:
+    def done(self, final_content: str | None = None) -> None:
         """Emit completion event.
 
         Args:
@@ -101,7 +99,7 @@ class RPCMode:
         """Initialize RPC mode."""
         self.request_id = 0
 
-    def read_request(self) -> Optional[dict]:
+    def read_request(self) -> dict | None:
         """Read a request from stdin.
 
         Returns:
@@ -133,7 +131,7 @@ class RPCMode:
         sys.stdout.write(json_line + "\n")
         sys.stdout.flush()
 
-    def send_error(self, error: str, request_id: Optional[int] = None) -> None:
+    def send_error(self, error: str, request_id: int | None = None) -> None:
         """Send an error response.
 
         Args:

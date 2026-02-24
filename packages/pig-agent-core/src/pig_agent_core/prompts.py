@@ -2,7 +2,6 @@
 
 import re
 from pathlib import Path
-from typing import Optional
 
 
 class PromptTemplate:
@@ -122,7 +121,7 @@ class PromptManager:
 
         return template
 
-    def get_template(self, name: str) -> Optional[PromptTemplate]:
+    def get_template(self, name: str) -> PromptTemplate | None:
         """Get a template by name.
 
         Args:
@@ -141,7 +140,7 @@ class PromptManager:
         """
         return list(self.templates.values())
 
-    def render_template(self, name: str, **kwargs) -> Optional[str]:
+    def render_template(self, name: str, **kwargs) -> str | None:
         """Render a template with variables.
 
         Args:

@@ -1,7 +1,7 @@
 """Google Gemini provider implementation."""
 
 import warnings
-from typing import AsyncIterator, Iterator, Optional
+from collections.abc import AsyncIterator, Iterator
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore", FutureWarning)
@@ -18,47 +18,40 @@ class GoogleProvider(Provider):
     def __init__(self, config: Config):
         """Initialize Google provider."""
         self.config = config
-        
+
         # Configure API
         genai.configure(api_key=config.api_key)
-        
+
         # Create model
         self.model = genai.GenerativeModel(config.model)
 
     def _convert_messages(self, messages: list[Message]) -> list[dict]:
         """Convert internal messages to Google format.
-        
+
         Returns:
             List of messages in Google format
         """
         # Google uses 'user' and 'model' roles
         google_messages = []
         system_parts = []
-        
+
         for msg in messages:
             if msg.role == "system":
                 system_parts.append(msg.content)
             elif msg.role == "assistant":
-                google_messages.append({
-                    "role": "model",
-                    "parts": [msg.content]
-                })
+                google_messages.append({"role": "model", "parts": [msg.content]})
             else:  # user
-                google_messages.append({
-                    "role": "user",
-                    "parts": [msg.content]
-                })
-        
+                google_messages.append({"role": "user", "parts": [msg.content]})
+
         # Prepend system message as first user message if present
         if system_parts:
             system_content = "\n".join(system_parts)
             if google_messages:
                 # Insert at beginning
-                google_messages.insert(0, {
-                    "role": "user",
-                    "parts": [f"System instructions: {system_content}"]
-                })
-        
+                google_messages.insert(
+                    0, {"role": "user", "parts": [f"System instructions: {system_content}"]}
+                )
+
         return google_messages
 
     def complete(
@@ -66,25 +59,27 @@ class GoogleProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Generate a completion."""
         google_messages = self._convert_messages(messages)
-        
+
         # Build chat
-        chat = self.model.start_chat(history=google_messages[:-1] if len(google_messages) > 1 else [])
-        
+        chat = self.model.start_chat(
+            history=google_messages[:-1] if len(google_messages) > 1 else []
+        )
+
         # Get last message
         last_message = google_messages[-1]["parts"][0] if google_messages else ""
-        
+
         # Generate response
         response = chat.send_message(
             last_message,
             generation_config=genai.types.GenerationConfig(
                 temperature=temperature,
                 max_output_tokens=max_tokens,
-            )
+            ),
         )
 
         # Extract usage if available
@@ -100,7 +95,9 @@ class GoogleProvider(Provider):
             content=response.text,
             model=model,
             usage=usage if usage else None,
-            finish_reason=str(response.candidates[0].finish_reason) if response.candidates else None,
+            finish_reason=str(response.candidates[0].finish_reason)
+            if response.candidates
+            else None,
         )
 
     def stream(
@@ -108,15 +105,17 @@ class GoogleProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
         """Stream a completion."""
         google_messages = self._convert_messages(messages)
-        
-        chat = self.model.start_chat(history=google_messages[:-1] if len(google_messages) > 1 else [])
+
+        chat = self.model.start_chat(
+            history=google_messages[:-1] if len(google_messages) > 1 else []
+        )
         last_message = google_messages[-1]["parts"][0] if google_messages else ""
-        
+
         response = chat.send_message(
             last_message,
             generation_config=genai.types.GenerationConfig(
@@ -138,7 +137,7 @@ class GoogleProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Async generate a completion."""
@@ -150,7 +149,7 @@ class GoogleProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Async stream a completion."""

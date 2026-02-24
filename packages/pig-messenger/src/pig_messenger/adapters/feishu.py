@@ -1,14 +1,13 @@
 """Feishu (飞书/Lark) platform adapter."""
 
-from typing import Optional, List
-from pathlib import Path
-from datetime import datetime
 import json
+from datetime import datetime
+from pathlib import Path
 
 import httpx
 
+from ..message import Attachment, UniversalMessage
 from ..platform import MessagePlatform
-from ..message import UniversalMessage, Attachment
 
 
 class FeishuAdapter(MessagePlatform):
@@ -18,8 +17,8 @@ class FeishuAdapter(MessagePlatform):
         self,
         app_id: str,
         app_secret: str,
-        verification_token: Optional[str] = None,
-        encrypt_key: Optional[str] = None,
+        verification_token: str | None = None,
+        encrypt_key: str | None = None,
     ):
         """Initialize Feishu adapter.
 
@@ -65,7 +64,7 @@ class FeishuAdapter(MessagePlatform):
         self,
         channel_id: str,
         text: str,
-        thread_id: Optional[str] = None,
+        thread_id: str | None = None,
         **kwargs,
     ) -> str:
         """Send message to Feishu chat.
@@ -114,8 +113,8 @@ class FeishuAdapter(MessagePlatform):
         self,
         channel_id: str,
         file_path: Path,
-        caption: Optional[str] = None,
-        thread_id: Optional[str] = None,
+        caption: str | None = None,
+        thread_id: str | None = None,
     ) -> str:
         """Upload file to Feishu.
 
@@ -138,9 +137,7 @@ class FeishuAdapter(MessagePlatform):
             files = {"file": (file_path.name, f)}
             data = {"file_type": "stream"}
 
-            response = await self.client.post(
-                upload_url, headers=headers, files=files, data=data
-            )
+            response = await self.client.post(upload_url, headers=headers, files=files, data=data)
             response.raise_for_status()
 
         file_key = response.json()["data"]["file_key"]
@@ -168,9 +165,7 @@ class FeishuAdapter(MessagePlatform):
 
         return message_id
 
-    async def get_history(
-        self, channel_id: str, limit: int = 100
-    ) -> List[UniversalMessage]:
+    async def get_history(self, channel_id: str, limit: int = 100) -> list[UniversalMessage]:
         """Get Feishu chat history.
 
         Args:

@@ -1,12 +1,19 @@
 """Terminal UI library with rich formatting."""
 
+from .advanced import (
+    AutoCompleter,
+    FileCompleter,
+    InteractiveTable,
+    MultiSelect,
+    PyCodeCompleter,
+    prompt_with_autocomplete,
+)
 from .chat import ChatUI
 from .console import Console
-from .prompt import Prompt, InteractivePrompt
+from .layout import LayoutManager, Overlay, StatusLine
 from .progress import Progress, Spinner
+from .prompt import InteractivePrompt, Prompt
 from .theme import Theme
-from .advanced import AutoCompleter, FileCompleter, PyCodeCompleter, MultiSelect, InteractiveTable, prompt_with_autocomplete
-from .layout import LayoutManager, StatusLine, Overlay
 
 __version__ = "0.0.1"
 

@@ -1,6 +1,6 @@
 """Azure OpenAI provider implementation."""
 
-from typing import AsyncIterator, Iterator, Optional
+from collections.abc import AsyncIterator, Iterator
 
 import openai
 
@@ -14,17 +14,18 @@ class AzureOpenAIProvider(Provider):
 
     def __init__(self, config: Config):
         """Initialize Azure OpenAI provider.
-        
+
         Requires:
         - config.api_key: Azure API key
         - config.base_url: Azure endpoint (e.g., https://xxx.openai.azure.com/)
         - Environment variable AZURE_OPENAI_API_VERSION (default: 2024-02-15-preview)
         """
         self.config = config
-        
+
         import os
+
         api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
-        
+
         self.client = openai.AzureOpenAI(
             api_key=config.api_key,
             azure_endpoint=config.base_url,
@@ -32,7 +33,7 @@ class AzureOpenAIProvider(Provider):
             timeout=config.timeout,
             max_retries=config.max_retries,
         )
-        
+
         self.async_client = openai.AsyncAzureOpenAI(
             api_key=config.api_key,
             azure_endpoint=config.base_url,
@@ -50,7 +51,7 @@ class AzureOpenAIProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Generate a completion."""
@@ -82,7 +83,7 @@ class AzureOpenAIProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
         """Stream a completion."""
@@ -109,7 +110,7 @@ class AzureOpenAIProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Async generate a completion."""
@@ -141,7 +142,7 @@ class AzureOpenAIProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Async stream a completion."""

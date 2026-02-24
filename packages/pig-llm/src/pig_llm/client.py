@@ -1,6 +1,6 @@
 """Main LLM client."""
 
-from typing import Iterator, Optional
+from collections.abc import Iterator
 
 from .config import Config
 from .models import Message, Response, StreamChunk
@@ -11,9 +11,9 @@ class LLM:
 
     def __init__(
         self,
-        provider: Optional[str] = None,
-        api_key: Optional[str] = None,
-        config: Optional[Config] = None,
+        provider: str | None = None,
+        api_key: str | None = None,
+        config: Config | None = None,
         **kwargs,
     ):
         """Initialize LLM client.
@@ -60,6 +60,7 @@ class LLM:
 
         module_name, class_name = entry
         import importlib
+
         mod = importlib.import_module(f".providers.{module_name}", package="pig_llm")
         provider_class = getattr(mod, class_name)
         return provider_class(self.config)
@@ -67,7 +68,7 @@ class LLM:
     def complete(
         self,
         prompt: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         **kwargs,
     ) -> Response:
         """Generate a completion.
@@ -96,7 +97,7 @@ class LLM:
     def stream(
         self,
         prompt: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
         """Stream a completion.

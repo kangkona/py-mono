@@ -1,7 +1,7 @@
 """Base provider class."""
 
 from abc import ABC, abstractmethod
-from typing import AsyncIterator, Iterator, Optional
+from collections.abc import AsyncIterator, Iterator
 
 from ..models import Message, Response, StreamChunk
 
@@ -15,7 +15,7 @@ class Provider(ABC):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Generate a completion."""
@@ -27,7 +27,7 @@ class Provider(ABC):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
         """Stream a completion."""
@@ -39,7 +39,7 @@ class Provider(ABC):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Async generate a completion."""
@@ -51,7 +51,7 @@ class Provider(ABC):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Async stream a completion."""

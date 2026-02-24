@@ -1,8 +1,8 @@
 """Groq provider implementation (ultra-fast inference)."""
 
-from typing import AsyncIterator, Iterator, Optional
+from collections.abc import AsyncIterator, Iterator
 
-from groq import Groq, AsyncGroq
+from groq import AsyncGroq, Groq
 
 from ..config import Config
 from ..models import Message, Response, StreamChunk
@@ -35,7 +35,7 @@ class GroqProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Generate a completion."""
@@ -50,9 +50,7 @@ class GroqProvider(Provider):
         choice = response.choices[0]
         usage = {
             "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
-            "completion_tokens": response.usage.completion_tokens
-            if response.usage
-            else 0,
+            "completion_tokens": response.usage.completion_tokens if response.usage else 0,
             "total_tokens": response.usage.total_tokens if response.usage else 0,
         }
 
@@ -69,7 +67,7 @@ class GroqProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
         """Stream a completion."""
@@ -96,7 +94,7 @@ class GroqProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Async generate a completion."""
@@ -111,9 +109,7 @@ class GroqProvider(Provider):
         choice = response.choices[0]
         usage = {
             "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
-            "completion_tokens": response.usage.completion_tokens
-            if response.usage
-            else 0,
+            "completion_tokens": response.usage.completion_tokens if response.usage else 0,
             "total_tokens": response.usage.total_tokens if response.usage else 0,
         }
 
@@ -130,7 +126,7 @@ class GroqProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Async stream a completion."""

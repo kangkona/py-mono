@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -12,7 +12,7 @@ class AgentConfig(BaseModel):
 
     # Model settings
     provider: str = "openai"
-    model: Optional[str] = None
+    model: str | None = None
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
 
     # Feature toggles
@@ -61,7 +61,7 @@ class AgentConfig(BaseModel):
 class ConfigManager:
     """Manages agent configuration."""
 
-    def __init__(self, workspace: Optional[Path] = None):
+    def __init__(self, workspace: Path | None = None):
         """Initialize config manager.
 
         Args:
@@ -125,7 +125,7 @@ class ConfigManager:
 
         return path
 
-    def get_config_value(self, key: str) -> Optional[Any]:
+    def get_config_value(self, key: str) -> Any | None:
         """Get a specific config value.
 
         Args:
@@ -137,9 +137,7 @@ class ConfigManager:
         config = self.load_config()
         return getattr(config, key, None)
 
-    def set_config_value(
-        self, key: str, value: Any, global_config: bool = False
-    ) -> None:
+    def set_config_value(self, key: str, value: Any, global_config: bool = False) -> None:
         """Set a specific config value.
 
         Args:

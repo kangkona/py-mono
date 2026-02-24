@@ -1,13 +1,12 @@
 """Context file management (AGENTS.md, SYSTEM.md, etc.)."""
 
 from pathlib import Path
-from typing import Optional
 
 
 class ContextManager:
     """Manages context files like AGENTS.md, SYSTEM.md."""
 
-    def __init__(self, workspace: Optional[Path] = None):
+    def __init__(self, workspace: Path | None = None):
         """Initialize context manager.
 
         Args:
@@ -67,7 +66,7 @@ class ContextManager:
 
         return found
 
-    def load_agents_md(self) -> Optional[str]:
+    def load_agents_md(self) -> str | None:
         """Load all AGENTS.md files.
 
         Returns:
@@ -88,7 +87,7 @@ class ContextManager:
 
         return "\n\n---\n\n".join(content_parts) if content_parts else None
 
-    def load_system_md(self) -> Optional[str]:
+    def load_system_md(self) -> str | None:
         """Load SYSTEM.md (replaces default system prompt).
 
         Returns:
@@ -106,7 +105,7 @@ class ContextManager:
             print(f"Warning: Failed to load SYSTEM.md: {e}")
             return None
 
-    def load_append_system_md(self) -> Optional[str]:
+    def load_append_system_md(self) -> str | None:
         """Load APPEND_SYSTEM.md (appends to system prompt).
 
         Returns:

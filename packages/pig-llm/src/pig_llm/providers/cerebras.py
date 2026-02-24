@@ -1,6 +1,6 @@
 """Cerebras provider implementation (ultra-fast inference)."""
 
-from typing import AsyncIterator, Iterator, Optional
+from collections.abc import AsyncIterator, Iterator
 
 import openai
 
@@ -11,7 +11,7 @@ from ._base import Provider
 
 class CerebrasProvider(Provider):
     """Cerebras provider implementation.
-    
+
     Cerebras uses OpenAI-compatible API for ultra-fast inference.
     """
 
@@ -19,7 +19,7 @@ class CerebrasProvider(Provider):
         """Initialize Cerebras provider."""
         self.config = config
         base_url = config.base_url or "https://api.cerebras.ai/v1"
-        
+
         self.client = openai.OpenAI(
             api_key=config.api_key,
             base_url=base_url,
@@ -42,7 +42,7 @@ class CerebrasProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Generate a completion."""
@@ -74,7 +74,7 @@ class CerebrasProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
         """Stream a completion."""
@@ -101,7 +101,7 @@ class CerebrasProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Async generate a completion."""
@@ -133,7 +133,7 @@ class CerebrasProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Async stream a completion."""

@@ -1,15 +1,14 @@
 """Slack platform adapter."""
 
-from typing import Optional, List
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk import WebClient
 
+from ..message import Attachment, UniversalMessage
 from ..platform import MessagePlatform
-from ..message import UniversalMessage, Attachment
 
 
 class SlackAdapter(MessagePlatform):
@@ -19,7 +18,7 @@ class SlackAdapter(MessagePlatform):
         self,
         app_token: str,
         bot_token: str,
-        bot_user_id: Optional[str] = None,
+        bot_user_id: str | None = None,
     ):
         """Initialize Slack adapter.
 
@@ -56,6 +55,7 @@ class SlackAdapter(MessagePlatform):
                 loop = None
             if loop and loop.is_running():
                 import concurrent.futures
+
                 with concurrent.futures.ThreadPoolExecutor() as pool:
                     return pool.submit(asyncio.run, coro).result()
             else:
@@ -145,7 +145,7 @@ class SlackAdapter(MessagePlatform):
         self,
         channel_id: str,
         text: str,
-        thread_id: Optional[str] = None,
+        thread_id: str | None = None,
         **kwargs,
     ) -> str:
         """Send message to Slack channel.
@@ -172,8 +172,8 @@ class SlackAdapter(MessagePlatform):
         self,
         channel_id: str,
         file_path: Path,
-        caption: Optional[str] = None,
-        thread_id: Optional[str] = None,
+        caption: str | None = None,
+        thread_id: str | None = None,
     ) -> str:
         """Upload file to Slack.
 
@@ -195,9 +195,7 @@ class SlackAdapter(MessagePlatform):
 
         return result["file"]["id"]
 
-    async def get_history(
-        self, channel_id: str, limit: int = 100
-    ) -> List[UniversalMessage]:
+    async def get_history(self, channel_id: str, limit: int = 100) -> list[UniversalMessage]:
         """Get Slack channel history.
 
         Args:

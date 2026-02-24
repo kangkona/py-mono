@@ -1,6 +1,7 @@
 """Basic web UI server example."""
 
 import os
+
 from pig_llm import LLM
 from pig_web_ui import ChatServer
 
@@ -32,7 +33,7 @@ def main():
     print("Web UI Server")
     print("=" * 50)
     print(f"Model: {llm.config.model}")
-    print(f"URL: http://localhost:8000")
+    print("URL: http://localhost:8000")
     print()
     print("Press Ctrl+C to stop")
     print("=" * 50)

@@ -2,7 +2,6 @@
 
 import re
 from pathlib import Path
-from typing import List, Tuple
 
 
 class FileReferenceParser:
@@ -16,7 +15,7 @@ class FileReferenceParser:
         """
         self.workspace = workspace
 
-    def parse_references(self, text: str) -> List[str]:
+    def parse_references(self, text: str) -> list[str]:
         """Parse @file references from text.
 
         Args:
@@ -30,7 +29,7 @@ class FileReferenceParser:
         matches = re.findall(pattern, text)
         return matches
 
-    def resolve_file(self, reference: str) -> Tuple[bool, Path, str]:
+    def resolve_file(self, reference: str) -> tuple[bool, Path, str]:
         """Resolve a file reference to actual path.
 
         Args:
@@ -136,7 +135,7 @@ class FileReferenceParser:
 
 def demo():
     """Demonstrate file reference parsing."""
-    
+
     parser = FileReferenceParser(Path.cwd())
 
     # Example text

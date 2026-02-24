@@ -2,12 +2,11 @@
 
 import os
 from pathlib import Path
-from typing import Optional
 
 import typer
+from pig_llm import LLM
 from rich.console import Console
 
-from pig_llm import LLM
 from .agent import CodingAgent
 
 app = typer.Typer(
@@ -22,13 +21,13 @@ console = Console()
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
-    model: Optional[str] = typer.Option(None, "--model", "-m", help="LLM model to use"),
+    model: str | None = typer.Option(None, "--model", "-m", help="LLM model to use"),
     provider: str = typer.Option("openai", "--provider", "-p", help="LLM provider"),
     workspace: Path = typer.Option(".", "--path", "-w", help="Workspace directory"),
     verbose: bool = typer.Option(True, "--verbose/--quiet", "-v/-q", help="Verbose output"),
     resume: bool = typer.Option(False, "--resume", "-r", help="Resume last session"),
     continue_session: bool = typer.Option(False, "--continue", "-c", help="Continue last session"),
-    session_name: Optional[str] = typer.Option(None, "--session", "-s", help="Session name"),
+    session_name: str | None = typer.Option(None, "--session", "-s", help="Session name"),
     no_extensions: bool = typer.Option(False, "--no-extensions", help="Disable extensions"),
     no_skills: bool = typer.Option(False, "--no-skills", help="Disable skills"),
     mode: str = typer.Option("interactive", "--mode", help="Output mode: interactive, json, rpc"),
@@ -54,10 +53,10 @@ def main(
     session_path = None
     if resume or continue_session:
         from pig_agent_core import SessionManager
-        
+
         session_mgr = SessionManager(workspace)
         sessions = session_mgr.list_sessions(limit=10)
-        
+
         if not sessions:
             console.print("[yellow]No previous sessions found[/yellow]")
         elif continue_session or len(sessions) == 1:
@@ -69,16 +68,14 @@ def main(
             console.print("[cyan]Recent sessions:[/cyan]\n")
             console.print(session_mgr.format_session_list(sessions))
             console.print()
-            
+
             from pig_tui import Prompt
+
             prompt = Prompt()
-            
+
             try:
-                choice = prompt.ask(
-                    "Select session (number or name)",
-                    default="1"
-                )
-                
+                choice = prompt.ask("Select session (number or name)", default="1")
+
                 # Parse choice
                 if choice.isdigit() and 1 <= int(choice) <= len(sessions):
                     session_path = sessions[int(choice) - 1].path
@@ -88,7 +85,9 @@ def main(
                     if found:
                         session_path = found
                     else:
-                        console.print(f"[yellow]Session '{choice}' not found, starting new[/yellow]")
+                        console.print(
+                            f"[yellow]Session '{choice}' not found, starting new[/yellow]"
+                        )
             except (KeyboardInterrupt, EOFError):
                 console.print("[yellow]Starting new session[/yellow]")
 
@@ -103,19 +102,19 @@ def main(
         enable_skills=not no_skills,
     )
 
-    console.print(f"[green]✓ Coding Agent started[/green]")
+    console.print("[green]✓ Coding Agent started[/green]")
     console.print(f"Model: [cyan]{llm.config.model}[/cyan]")
     console.print(f"Workspace: [cyan]{workspace.resolve()}[/cyan]")
-    
+
     if agent.session:
         console.print(f"Session: [cyan]{agent.session.name}[/cyan]")
-    
+
     if agent.skill_manager and len(agent.skill_manager) > 0:
         console.print(f"Skills: [cyan]{len(agent.skill_manager)} loaded[/cyan]")
-    
+
     if agent.extension_manager and len(agent.extension_manager.extensions) > 0:
         console.print(f"Extensions: [cyan]{len(agent.extension_manager.extensions)} loaded[/cyan]")
-    
+
     # Handle different output modes
     if mode == "json":
         console.print("[cyan]JSON mode enabled[/cyan]")
@@ -134,43 +133,43 @@ def main(
 
 def run_json_mode(agent):
     """Run agent in JSON output mode.
-    
+
     Args:
         agent: CodingAgent instance
     """
     from pig_agent_core import JSONOutputMode
-    
+
     json_out = JSONOutputMode()
-    
+
     # Read from stdin if piped, otherwise interactive
     import select
-    
+
     if select.select([sys.stdin], [], [], 0.0)[0]:
         # Input available, read line
         for line in sys.stdin:
             line = line.strip()
             if not line:
                 continue
-            
+
             try:
                 # Parse input
                 data = json.loads(line)
                 message = data.get("message") or data.get("content")
-                
+
                 if not message:
                     json_out.error("No message in request")
                     continue
-                
+
                 # Send message event
                 json_out.message("user", message)
-                
+
                 # Get response
                 response = agent.agent.run(message)
-                
+
                 # Send response
                 json_out.message("assistant", response.content)
                 json_out.done(response.content)
-                
+
             except json.JSONDecodeError as e:
                 json_out.error(f"Invalid JSON: {e}")
             except Exception as e:
@@ -178,18 +177,18 @@ def run_json_mode(agent):
     else:
         # Interactive JSON mode
         json_out.emit_event("ready", {"agent": "pig-code", "mode": "json"})
-        
+
         while True:
             try:
                 user_input = input()
                 if not user_input:
                     continue
-                
+
                 json_out.message("user", user_input)
                 response = agent.agent.run(user_input)
                 json_out.message("assistant", response.content)
                 json_out.done()
-                
+
             except (KeyboardInterrupt, EOFError):
                 json_out.emit_event("shutdown", {})
                 break
@@ -197,21 +196,21 @@ def run_json_mode(agent):
 
 def run_rpc_mode(agent):
     """Run agent in RPC mode.
-    
+
     Args:
         agent: CodingAgent instance
     """
     from pig_agent_core import RPCMode
-    
+
     rpc = RPCMode()
-    
+
     def handle_request(method: str, params: dict) -> Any:
         """Handle RPC requests.
-        
+
         Args:
             method: RPC method name
             params: Method parameters
-            
+
         Returns:
             Method result
         """
@@ -219,34 +218,34 @@ def run_rpc_mode(agent):
             message = params.get("message")
             if not message:
                 raise ValueError("Missing 'message' parameter")
-            
+
             response = agent.agent.run(message)
             return {"content": response.content, "model": agent.agent.llm.config.model}
-        
+
         elif method == "stream":
             message = params.get("message")
             if not message:
                 raise ValueError("Missing 'message' parameter")
-            
+
             # Stream tokens as events
             for chunk in agent.agent.llm.stream(message):
                 rpc.send_event("token", {"content": chunk.content})
-            
+
             return {"done": True}
-        
+
         elif method == "ping":
             return {"pong": True}
-        
+
         elif method == "status":
             return {
                 "model": agent.agent.llm.config.model,
                 "provider": agent.agent.llm.config.provider,
                 "tools": len(agent.agent.registry),
             }
-        
+
         else:
             raise ValueError(f"Unknown method: {method}")
-    
+
     # Run server
     rpc.run_server(handle_request)
 
@@ -254,8 +253,8 @@ def run_rpc_mode(agent):
 @app.command()
 def gen(
     description: str = typer.Argument(..., help="What to generate"),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output file"),
-    model: Optional[str] = typer.Option(None, "--model", "-m", help="LLM model"),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Output file"),
+    model: str | None = typer.Option(None, "--model", "-m", help="LLM model"),
 ):
     """Generate code from description."""
     api_key = os.getenv("OPENAI_API_KEY")
@@ -279,7 +278,7 @@ def gen(
 @app.command()
 def analyze(
     path: Path = typer.Argument(..., help="File or directory to analyze"),
-    model: Optional[str] = typer.Option(None, "--model", "-m", help="LLM model"),
+    model: str | None = typer.Option(None, "--model", "-m", help="LLM model"),
 ):
     """Analyze code and provide insights."""
     api_key = os.getenv("OPENAI_API_KEY")

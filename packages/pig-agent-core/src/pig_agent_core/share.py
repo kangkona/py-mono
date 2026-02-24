@@ -1,12 +1,11 @@
 """Share sessions via GitHub Gist."""
 
-import json
 from pathlib import Path
-from typing import Optional
+
 import httpx
 
-from .session import Session
 from .export import SessionExporter
+from .session import Session
 
 
 class GistSharer:
@@ -14,7 +13,7 @@ class GistSharer:
 
     GIST_API = "https://api.github.com/gists"
 
-    def __init__(self, github_token: Optional[str] = None):
+    def __init__(self, github_token: str | None = None):
         """Initialize gist sharer.
 
         Args:
@@ -27,7 +26,7 @@ class GistSharer:
         self,
         session: Session,
         public: bool = False,
-        description: Optional[str] = None,
+        description: str | None = None,
     ) -> dict:
         """Share session as GitHub Gist.
 
@@ -79,9 +78,7 @@ class GistSharer:
             "Accept": "application/vnd.github.v3+json",
         }
 
-        response = httpx.post(
-            self.GIST_API, json=payload, headers=headers, timeout=30
-        )
+        response = httpx.post(self.GIST_API, json=payload, headers=headers, timeout=30)
 
         response.raise_for_status()
 

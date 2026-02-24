@@ -2,8 +2,9 @@
 
 import os
 from datetime import datetime
-from pig_llm import LLM
+
 from pig_agent_core import Agent, tool
+from pig_llm import LLM
 from pig_web_ui import ChatServer
 
 
@@ -50,7 +51,7 @@ def main():
         llm=llm,
         tools=[get_time, get_date, calculate],
         system_prompt="""You are a helpful assistant with access to time and calculation tools.
-        
+
 Use the tools when needed:
 - get_time() for current time
 - get_date() for current date
@@ -72,8 +73,8 @@ Be helpful and friendly!""",
     print("Agent Web UI Server")
     print("=" * 50)
     print(f"Model: {llm.config.model}")
-    print(f"Tools: get_time, get_date, calculate")
-    print(f"URL: http://localhost:8000")
+    print("Tools: get_time, get_date, calculate")
+    print("URL: http://localhost:8000")
     print()
     print("Try asking:")
     print("  - What time is it?")

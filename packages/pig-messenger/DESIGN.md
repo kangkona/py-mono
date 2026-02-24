@@ -41,19 +41,19 @@ from abc import ABC, abstractmethod
 
 class MessagePlatform(ABC):
     """消息平台抽象接口"""
-    
+
     @abstractmethod
     async def send_message(self, channel_id: str, text: str):
         """发送消息"""
-        
+
     @abstractmethod
     async def upload_file(self, channel_id: str, file_path: str):
         """上传文件"""
-        
+
     @abstractmethod
     async def get_history(self, channel_id: str, limit: int):
         """获取历史消息"""
-        
+
     @abstractmethod
     def start(self):
         """启动平台监听"""
@@ -64,7 +64,7 @@ class MessagePlatform(ABC):
 ```python
 class UniversalMessage:
     """平台无关的消息格式"""
-    
+
     id: str
     platform: str  # slack, discord, whatsapp
     channel_id: str
@@ -82,10 +82,10 @@ class UniversalMessage:
 ```python
 class SlackAdapter(MessagePlatform):
     """Slack平台适配器"""
-    
+
 class DiscordAdapter(MessagePlatform):
     """Discord平台适配器"""
-    
+
 class WhatsAppAdapter(MessagePlatform):
     """WhatsApp平台适配器"""
 ```
@@ -95,19 +95,19 @@ class WhatsAppAdapter(MessagePlatform):
 ```python
 class MessengerBot:
     """通用消息Bot"""
-    
+
     def __init__(self, agent: Agent):
         self.agent = agent
         self.platforms: Dict[str, MessagePlatform] = {}
-    
+
     def add_platform(self, platform: MessagePlatform):
         """添加平台支持"""
-        
+
     async def handle_message(self, msg: UniversalMessage):
         """处理消息(平台无关)"""
         response = self.agent.run(msg.text)
         await self.platforms[msg.platform].send_message(
-            msg.channel_id, 
+            msg.channel_id,
             response.content
         )
 ```
@@ -204,15 +204,15 @@ from pig_messenger import MessagePlatform, UniversalMessage
 
 class MyPlatformAdapter(MessagePlatform):
     """自定义平台适配器"""
-    
+
     async def send_message(self, channel_id, text):
         # 你的实现
         pass
-    
+
     async def get_history(self, channel_id, limit):
         # 你的实现
         pass
-    
+
     def start(self):
         # 启动监听
         pass
@@ -264,12 +264,12 @@ bot.add_platform(MyPlatformAdapter())
 ```python
 class MultiPlatformSession:
     """跨平台会话管理"""
-    
+
     def get_session(self, platform: str, channel_id: str):
         """获取会话"""
         key = f"{platform}:{channel_id}"
         return self.sessions.get(key)
-    
+
     # 每个平台+channel组合独立会话
     # slack:C123ABC → session1
     # discord:987654321 → session2
@@ -280,13 +280,13 @@ class MultiPlatformSession:
 ```python
 async def route_message(self, msg: UniversalMessage):
     """统一的消息路由"""
-    
+
     # 1. 获取对应会话
     session = self.get_session(msg.platform, msg.channel_id)
-    
+
     # 2. 运行agent
     response = self.agent.run(msg.text, session=session)
-    
+
     # 3. 路由回对应平台
     platform = self.platforms[msg.platform]
     await platform.send_message(msg.channel_id, response.content)
@@ -297,23 +297,23 @@ async def route_message(self, msg: UniversalMessage):
 ```python
 class MessagePlatform(ABC):
     """平台适配器必须实现的接口"""
-    
+
     # 消息
     async def send_message(self, channel_id, text, **kwargs)
     async def edit_message(self, message_id, text)
     async def delete_message(self, message_id)
-    
+
     # 文件
     async def upload_file(self, channel_id, file_path)
     async def download_file(self, file_id) -> bytes
-    
+
     # 历史
     async def get_history(self, channel_id, limit)
     async def search_messages(self, query)
-    
+
     # 用户
     async def get_user_info(self, user_id)
-    
+
     # 生命周期
     def start()  # 启动监听
     def stop()   # 停止
@@ -339,7 +339,7 @@ class MessagePlatform(ABC):
 ### Phase 3: 更多适配器 (各1天)
 - [ ] DiscordAdapter
 - [ ] WhatsAppAdapter (via official API)
-- [ ] TelegramAdapter  
+- [ ] TelegramAdapter
 - [ ] FeishuAdapter (飞书)
 
 ### Phase 4: 增强功能 (1-2天)

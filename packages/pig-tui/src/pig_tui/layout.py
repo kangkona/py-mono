@@ -1,10 +1,9 @@
 """Layout system for terminal UI."""
 
-from typing import List, Optional
-from rich.console import Console, Group
+from rich.console import Console
 from rich.layout import Layout as RichLayout
-from rich.panel import Panel
 from rich.live import Live
+from rich.panel import Panel
 
 
 class LayoutManager:
@@ -118,7 +117,7 @@ class Overlay:
         """Hide overlay."""
         self.visible = False
 
-    def render(self) -> Optional[Panel]:
+    def render(self) -> Panel | None:
         """Render overlay if visible.
 
         Returns:

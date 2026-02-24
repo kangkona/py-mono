@@ -1,9 +1,7 @@
 """Built-in tools for coding agent."""
 
-import os
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from pig_agent_core import tool
 
@@ -70,14 +68,14 @@ class FileTools:
         dir_path = self._resolve_path(directory)
         if not dir_path.exists():
             return f"Error: Directory {directory} does not exist"
-        
+
         files = []
         for item in sorted(dir_path.iterdir()):
             if item.is_file():
                 files.append(f"  📄 {item.name}")
             elif item.is_dir():
                 files.append(f"  📁 {item.name}/")
-        
+
         return "\n".join(files) if files else "Empty directory"
 
     @tool(description="Check if file exists")
@@ -105,7 +103,7 @@ class FileTools:
             Matching lines with file names
         """
         import re
-        
+
         search_path = self._resolve_path(path)
         results = []
 
@@ -204,9 +202,7 @@ class FileTools:
                     results.append(f"📁 {item.name:<30} {mtime_str}  <DIR>")
                 else:
                     size_kb = size / 1024
-                    results.append(
-                        f"📄 {item.name:<30} {mtime_str}  {size_kb:>8.1f} KB"
-                    )
+                    results.append(f"📄 {item.name:<30} {mtime_str}  {size_kb:>8.1f} KB")
         except Exception as e:
             return f"Error listing directory: {e}"
 
@@ -265,7 +261,7 @@ class ShellTools:
     """Shell command execution tools."""
 
     @tool(description="Execute a shell command")
-    def run_command(self, command: str, cwd: Optional[str] = None) -> str:
+    def run_command(self, command: str, cwd: str | None = None) -> str:
         """Execute shell command safely.
 
         Args:
@@ -303,7 +299,7 @@ class ShellTools:
         return self.run_command("git status --short")
 
     @tool(description="Get git diff")
-    def git_diff(self, path: Optional[str] = None) -> str:
+    def git_diff(self, path: str | None = None) -> str:
         """Get git diff.
 
         Args:
@@ -336,7 +332,7 @@ class ShellTools:
         return self.run_command(f"git commit -m {safe_message}")
 
     @tool(description="Git push changes")
-    def git_push(self, remote: str = "origin", branch: Optional[str] = None) -> str:
+    def git_push(self, remote: str = "origin", branch: str | None = None) -> str:
         """Push changes to remote.
 
         Args:

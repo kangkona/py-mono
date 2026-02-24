@@ -1,6 +1,6 @@
 """Perplexity provider implementation (online search-enabled LLM)."""
 
-from typing import AsyncIterator, Iterator, Optional
+from collections.abc import AsyncIterator, Iterator
 
 import openai
 
@@ -11,7 +11,7 @@ from ._base import Provider
 
 class PerplexityProvider(Provider):
     """Perplexity provider implementation.
-    
+
     Perplexity uses OpenAI-compatible API with online search capabilities.
     """
 
@@ -19,7 +19,7 @@ class PerplexityProvider(Provider):
         """Initialize Perplexity provider."""
         self.config = config
         base_url = config.base_url or "https://api.perplexity.ai"
-        
+
         self.client = openai.OpenAI(
             api_key=config.api_key,
             base_url=base_url,
@@ -42,7 +42,7 @@ class PerplexityProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Generate a completion with online search."""
@@ -79,7 +79,7 @@ class PerplexityProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
         """Stream a completion with online search."""
@@ -99,7 +99,7 @@ class PerplexityProvider(Provider):
                 # Include citations if available
                 if hasattr(chunk, "citations"):
                     metadata["citations"] = chunk.citations
-                
+
                 yield StreamChunk(
                     content=choice.delta.content,
                     finish_reason=choice.finish_reason,
@@ -111,7 +111,7 @@ class PerplexityProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Async generate a completion with online search."""
@@ -148,7 +148,7 @@ class PerplexityProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Async stream a completion with online search."""
@@ -168,7 +168,7 @@ class PerplexityProvider(Provider):
                 # Include citations if available
                 if hasattr(chunk, "citations"):
                     metadata["citations"] = chunk.citations
-                
+
                 yield StreamChunk(
                     content=choice.delta.content,
                     finish_reason=choice.finish_reason,

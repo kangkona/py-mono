@@ -177,19 +177,19 @@ class MyPlatformAdapter(MessagePlatform):
     def __init__(self, api_key):
         super().__init__("myplatform")
         self.api_key = api_key
-    
+
     async def send_message(self, channel_id, text, **kwargs):
         # Your implementation
         pass
-    
+
     async def get_history(self, channel_id, limit):
         # Your implementation
         return []
-    
+
     def start(self):
         # Start listening
         pass
-    
+
     def stop(self):
         # Cleanup
         pass

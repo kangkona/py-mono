@@ -1,13 +1,11 @@
 """Discord platform adapter."""
 
-from typing import Optional, List
 from pathlib import Path
-from datetime import datetime
 
 import discord
 
+from ..message import Attachment, UniversalMessage
 from ..platform import MessagePlatform
-from ..message import UniversalMessage, Attachment
 
 
 class DiscordAdapter(MessagePlatform):
@@ -93,7 +91,7 @@ class DiscordAdapter(MessagePlatform):
         self,
         channel_id: str,
         text: str,
-        thread_id: Optional[str] = None,
+        thread_id: str | None = None,
         **kwargs,
     ) -> str:
         """Send message to Discord channel."""
@@ -111,8 +109,8 @@ class DiscordAdapter(MessagePlatform):
         self,
         channel_id: str,
         file_path: Path,
-        caption: Optional[str] = None,
-        thread_id: Optional[str] = None,
+        caption: str | None = None,
+        thread_id: str | None = None,
     ) -> str:
         """Upload file to Discord."""
         channel = self.client.get_channel(int(channel_id))
@@ -124,9 +122,7 @@ class DiscordAdapter(MessagePlatform):
 
         return str(msg.id)
 
-    async def get_history(
-        self, channel_id: str, limit: int = 100
-    ) -> List[UniversalMessage]:
+    async def get_history(self, channel_id: str, limit: int = 100) -> list[UniversalMessage]:
         """Get Discord channel history."""
         channel = self.client.get_channel(int(channel_id))
 

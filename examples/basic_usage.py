@@ -1,7 +1,9 @@
 """Basic usage example for py-ai."""
 
 import os
+
 from pig_llm import LLM
+
 
 def main():
     """Run basic examples."""
@@ -33,6 +35,7 @@ def main():
     for chunk in llm.stream("Count from 1 to 5"):
         print(chunk.content, end="", flush=True)
     print()
+
 
 if __name__ == "__main__":
     main()

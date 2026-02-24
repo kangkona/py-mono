@@ -1,14 +1,11 @@
 """Subscription login helpers (Claude Pro, ChatGPT Plus, etc.)."""
 
-from typing import Optional
-import httpx
-
 
 class SubscriptionAuth:
     """Authentication via subscription accounts."""
 
     @staticmethod
-    def login_claude_pro(email: str, password: str) -> Optional[str]:
+    def login_claude_pro(email: str, password: str) -> str | None:
         """Login to Claude Pro account.
 
         Note: This is a placeholder. Actual implementation would need:
@@ -37,7 +34,7 @@ class SubscriptionAuth:
         )
 
     @staticmethod
-    def login_chatgpt_plus(email: str, password: str) -> Optional[str]:
+    def login_chatgpt_plus(email: str, password: str) -> str | None:
         """Login to ChatGPT Plus account.
 
         Note: Similar limitations as Claude Pro.
@@ -92,7 +89,7 @@ class APIKeyManager:
         """
         self.keys[provider] = api_key
 
-    def get_key(self, provider: str) -> Optional[str]:
+    def get_key(self, provider: str) -> str | None:
         """Get API key for a provider.
 
         Checks:

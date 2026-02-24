@@ -1,10 +1,10 @@
 """Platform adapter base class."""
 
 from abc import ABC, abstractmethod
-from typing import Optional, List, Callable
+from collections.abc import Callable
 from pathlib import Path
 
-from .message import UniversalMessage, UniversalResponse, Attachment
+from .message import Attachment, UniversalMessage
 
 
 class MessagePlatform(ABC):
@@ -17,14 +17,14 @@ class MessagePlatform(ABC):
             name: Platform name
         """
         self.name = name
-        self.on_message: Optional[Callable] = None
+        self.on_message: Callable | None = None
 
     @abstractmethod
     async def send_message(
         self,
         channel_id: str,
         text: str,
-        thread_id: Optional[str] = None,
+        thread_id: str | None = None,
         **kwargs,
     ) -> str:
         """Send a message to a channel.
@@ -45,8 +45,8 @@ class MessagePlatform(ABC):
         self,
         channel_id: str,
         file_path: Path,
-        caption: Optional[str] = None,
-        thread_id: Optional[str] = None,
+        caption: str | None = None,
+        thread_id: str | None = None,
     ) -> str:
         """Upload a file to a channel.
 
@@ -62,9 +62,7 @@ class MessagePlatform(ABC):
         pass
 
     @abstractmethod
-    async def get_history(
-        self, channel_id: str, limit: int = 100
-    ) -> List[UniversalMessage]:
+    async def get_history(self, channel_id: str, limit: int = 100) -> list[UniversalMessage]:
         """Get message history from a channel.
 
         Args:

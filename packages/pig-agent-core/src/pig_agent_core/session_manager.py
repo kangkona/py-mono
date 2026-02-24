@@ -1,10 +1,7 @@
 """Session manager for listing and selecting sessions."""
 
-from pathlib import Path
-from typing import List, Optional
 from datetime import datetime
-
-from .session import Session
+from pathlib import Path
 
 
 class SessionInfo:
@@ -24,6 +21,7 @@ class SessionInfo:
         # Try to load header for more info
         try:
             import json
+
             with open(path) as f:
                 header = json.loads(f.readline())
                 self.session_name = header.get("name", self.name)
@@ -41,7 +39,7 @@ class SessionInfo:
 class SessionManager:
     """Manages multiple sessions."""
 
-    def __init__(self, workspace: Optional[Path] = None):
+    def __init__(self, workspace: Path | None = None):
         """Initialize session manager.
 
         Args:
@@ -50,7 +48,7 @@ class SessionManager:
         self.workspace = Path(workspace) if workspace else Path.cwd()
         self.sessions_dir = self.workspace / ".sessions"
 
-    def list_sessions(self, limit: Optional[int] = None) -> List[SessionInfo]:
+    def list_sessions(self, limit: int | None = None) -> list[SessionInfo]:
         """List available sessions.
 
         Args:
@@ -78,7 +76,7 @@ class SessionManager:
 
         return sessions
 
-    def get_most_recent(self) -> Optional[SessionInfo]:
+    def get_most_recent(self) -> SessionInfo | None:
         """Get the most recently modified session.
 
         Returns:
@@ -87,7 +85,7 @@ class SessionManager:
         sessions = self.list_sessions(limit=1)
         return sessions[0] if sessions else None
 
-    def find_session(self, name_or_id: str) -> Optional[Path]:
+    def find_session(self, name_or_id: str) -> Path | None:
         """Find a session by name or partial ID.
 
         Args:
@@ -106,6 +104,7 @@ class SessionManager:
             # Match by partial ID (from header)
             try:
                 import json
+
                 with open(info.path) as f:
                     header = json.loads(f.readline())
                     session_id = header.get("id", "")
@@ -154,7 +153,7 @@ class SessionManager:
 
         return deleted
 
-    def format_session_list(self, sessions: List[SessionInfo]) -> str:
+    def format_session_list(self, sessions: list[SessionInfo]) -> str:
         """Format session list for display.
 
         Args:
@@ -169,9 +168,7 @@ class SessionManager:
         lines = []
         for i, info in enumerate(sessions, 1):
             age = self._format_age(info.modified)
-            lines.append(
-                f"{i}. {info.session_name:<30} {age:<15} ({info.entries} entries)"
-            )
+            lines.append(f"{i}. {info.session_name:<30} {age:<15} ({info.entries} entries)")
 
         return "\n".join(lines)
 

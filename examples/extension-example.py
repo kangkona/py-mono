@@ -1,8 +1,8 @@
 """Extension system example."""
 
-from pig_agent_core import Agent, ExtensionAPI, ExtensionManager
-from pig_llm import LLM
 from unittest.mock import Mock
+
+from pig_agent_core import Agent, ExtensionAPI, ExtensionManager
 
 
 # Example extension
@@ -67,9 +67,7 @@ def main():
 
     # Test event emission
     print("\n6. Testing event system:")
-    ext_manager.emit_event(
-        "tool_call_start", {"tool_name": "factorial", "args": {"n": 5}}
-    )
+    ext_manager.emit_event("tool_call_start", {"tool_name": "factorial", "args": {"n": 5}})
     ext_manager.emit_event("tool_call_end", {"tool_name": "factorial", "result": 120})
 
     # Test tool execution

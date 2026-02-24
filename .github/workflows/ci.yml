@@ -104,10 +104,10 @@ jobs:
 
   docs:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Check documentation
       run: |
         # Check all packages have READMEs
@@ -117,5 +117,5 @@ jobs:
             exit 1
           fi
         done
-        
+
         echo "✓ All packages have documentation"

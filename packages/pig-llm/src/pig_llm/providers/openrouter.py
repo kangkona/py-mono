@@ -1,6 +1,6 @@
 """OpenRouter provider (aggregates multiple providers)."""
 
-from typing import AsyncIterator, Iterator, Optional
+from collections.abc import AsyncIterator, Iterator
 
 import openai
 
@@ -14,11 +14,11 @@ class OpenRouterProvider(Provider):
 
     def __init__(self, config: Config):
         """Initialize OpenRouter provider.
-        
+
         OpenRouter uses OpenAI-compatible API.
         """
         self.config = config
-        
+
         # OpenRouter uses OpenAI client with custom base URL
         self.client = openai.OpenAI(
             api_key=config.api_key,
@@ -26,7 +26,7 @@ class OpenRouterProvider(Provider):
             timeout=config.timeout,
             max_retries=config.max_retries,
         )
-        
+
         self.async_client = openai.AsyncOpenAI(
             api_key=config.api_key,
             base_url="https://openrouter.ai/api/v1",
@@ -39,17 +39,21 @@ class OpenRouterProvider(Provider):
         result = []
         for msg in messages:
             if msg.role == "assistant" and msg.metadata and "tool_calls" in msg.metadata:
-                result.append({
-                    "role": "assistant",
-                    "content": msg.content or None,
-                    "tool_calls": msg.metadata["tool_calls"],
-                })
+                result.append(
+                    {
+                        "role": "assistant",
+                        "content": msg.content or None,
+                        "tool_calls": msg.metadata["tool_calls"],
+                    }
+                )
             elif msg.role == "tool" and msg.metadata:
-                result.append({
-                    "role": "tool",
-                    "content": msg.content,
-                    "tool_call_id": msg.metadata.get("tool_call_id", ""),
-                })
+                result.append(
+                    {
+                        "role": "tool",
+                        "content": msg.content,
+                        "tool_call_id": msg.metadata.get("tool_call_id", ""),
+                    }
+                )
             else:
                 result.append({"role": msg.role, "content": msg.content})
         return result
@@ -76,7 +80,7 @@ class OpenRouterProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Generate a completion."""
@@ -109,7 +113,7 @@ class OpenRouterProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
         """Stream a completion."""
@@ -136,7 +140,7 @@ class OpenRouterProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Async generate a completion."""
@@ -169,7 +173,7 @@ class OpenRouterProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Async stream a completion."""

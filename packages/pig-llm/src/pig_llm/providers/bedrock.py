@@ -1,7 +1,6 @@
 """Amazon Bedrock provider implementation."""
 
-from typing import AsyncIterator, Iterator, Optional
-import json
+from collections.abc import AsyncIterator, Iterator
 
 try:
     import boto3
@@ -19,18 +18,18 @@ class BedrockProvider(Provider):
 
     def __init__(self, config: Config):
         """Initialize Bedrock provider.
-        
+
         Note: Bedrock uses AWS credentials from environment or ~/.aws/credentials
         api_key can be used to pass AWS region (default: us-east-1)
         """
         self.config = config
         self.region = config.api_key or "us-east-1"
-        
+
         boto_config = BotoConfig(
             read_timeout=config.timeout,
             retries={"max_attempts": config.max_retries},
         )
-        
+
         self.client = boto3.client(
             "bedrock-runtime",
             region_name=self.region,
@@ -39,22 +38,19 @@ class BedrockProvider(Provider):
 
     def _convert_messages(self, messages: list[Message]) -> tuple[str, list[dict]]:
         """Convert internal messages to Bedrock format.
-        
+
         Returns:
             Tuple of (system_prompt, messages_list)
         """
         system_prompt = ""
         converted = []
-        
+
         for msg in messages:
             if msg.role == "system":
                 system_prompt = msg.content
             else:
-                converted.append({
-                    "role": msg.role,
-                    "content": [{"text": msg.content}]
-                })
-        
+                converted.append({"role": msg.role, "content": [{"text": msg.content}]})
+
         return system_prompt, converted
 
     def _build_request_body(
@@ -62,24 +58,24 @@ class BedrockProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float,
-        max_tokens: Optional[int],
+        max_tokens: int | None,
     ) -> dict:
         """Build request body for Bedrock."""
         system_prompt, converted_messages = self._convert_messages(messages)
-        
+
         body = {
             "messages": converted_messages,
             "inferenceConfig": {
                 "temperature": temperature,
-            }
+            },
         }
-        
+
         if max_tokens:
             body["inferenceConfig"]["maxTokens"] = max_tokens
-        
+
         if system_prompt:
             body["system"] = [{"text": system_prompt}]
-        
+
         return body
 
     def complete(
@@ -87,27 +83,27 @@ class BedrockProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Generate a completion."""
         body = self._build_request_body(messages, model, temperature, max_tokens)
-        
+
         response = self.client.converse(
             modelId=model,
             **body,
         )
-        
+
         output = response["output"]["message"]
         content = output["content"][0]["text"]
-        
+
         usage = response.get("usage", {})
         usage_dict = {
             "prompt_tokens": usage.get("inputTokens", 0),
             "completion_tokens": usage.get("outputTokens", 0),
             "total_tokens": usage.get("totalTokens", 0),
         }
-        
+
         return Response(
             content=content,
             model=model,
@@ -121,17 +117,17 @@ class BedrockProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
         """Stream a completion."""
         body = self._build_request_body(messages, model, temperature, max_tokens)
-        
+
         response = self.client.converse_stream(
             modelId=model,
             **body,
         )
-        
+
         stream = response.get("stream")
         if stream:
             for event in stream:
@@ -156,11 +152,11 @@ class BedrockProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Async generate a completion.
-        
+
         Note: Bedrock doesn't have native async support, this uses sync client.
         For true async, use aioboto3 library.
         """
@@ -172,11 +168,11 @@ class BedrockProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Async stream a completion.
-        
+
         Note: Bedrock doesn't have native async support, this uses sync client.
         For true async, use aioboto3 library.
         """

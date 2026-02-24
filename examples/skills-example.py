@@ -1,6 +1,7 @@
 """Skills system example."""
 
 from pathlib import Path
+
 from pig_agent_core import SkillManager
 
 

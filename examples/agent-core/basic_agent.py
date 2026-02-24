@@ -1,8 +1,9 @@
 """Basic agent usage example."""
 
 import os
-from pig_llm import LLM
+
 from pig_agent_core import Agent, tool
+from pig_llm import LLM
 
 
 @tool(description="Get current weather for a location")

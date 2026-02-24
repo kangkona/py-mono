@@ -1,6 +1,6 @@
 """Cohere provider implementation."""
 
-from typing import AsyncIterator, Iterator, Optional
+from collections.abc import AsyncIterator, Iterator
 
 try:
     import cohere
@@ -19,7 +19,7 @@ class CohereProvider(Provider):
     def __init__(self, config: Config):
         """Initialize Cohere provider."""
         self.config = config
-        
+
         self.client = Client(
             api_key=config.api_key,
             timeout=config.timeout,
@@ -33,14 +33,14 @@ class CohereProvider(Provider):
 
     def _convert_messages(self, messages: list[Message]) -> tuple[str, str, list[dict]]:
         """Convert internal messages to Cohere format.
-        
+
         Returns:
             Tuple of (preamble/system, final_message, chat_history)
         """
         preamble = ""
         chat_history = []
         final_message = ""
-        
+
         for i, msg in enumerate(messages):
             if msg.role == "system":
                 preamble = msg.content
@@ -52,7 +52,7 @@ class CohereProvider(Provider):
                     chat_history.append({"role": "USER", "message": msg.content})
             elif msg.role == "assistant":
                 chat_history.append({"role": "CHATBOT", "message": msg.content})
-        
+
         return preamble, final_message, chat_history
 
     def complete(
@@ -60,27 +60,27 @@ class CohereProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Generate a completion."""
         preamble, message, chat_history = self._convert_messages(messages)
-        
+
         params = {
             "model": model,
             "message": message,
             "temperature": temperature,
         }
-        
+
         if preamble:
             params["preamble"] = preamble
         if chat_history:
             params["chat_history"] = chat_history
         if max_tokens:
             params["max_tokens"] = max_tokens
-        
+
         response = self.client.chat(**params)
-        
+
         usage = {
             "prompt_tokens": response.meta.tokens.input_tokens if response.meta else 0,
             "completion_tokens": response.meta.tokens.output_tokens if response.meta else 0,
@@ -90,7 +90,7 @@ class CohereProvider(Provider):
                 else 0
             ),
         }
-        
+
         return Response(
             content=response.text,
             model=model,
@@ -104,27 +104,27 @@ class CohereProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
         """Stream a completion."""
         preamble, message, chat_history = self._convert_messages(messages)
-        
+
         params = {
             "model": model,
             "message": message,
             "temperature": temperature,
         }
-        
+
         if preamble:
             params["preamble"] = preamble
         if chat_history:
             params["chat_history"] = chat_history
         if max_tokens:
             params["max_tokens"] = max_tokens
-        
+
         stream = self.client.chat_stream(**params)
-        
+
         for event in stream:
             if event.event_type == "text-generation":
                 yield StreamChunk(
@@ -135,7 +135,9 @@ class CohereProvider(Provider):
             elif event.event_type == "stream-end":
                 yield StreamChunk(
                     content="",
-                    finish_reason=event.finish_reason if hasattr(event, "finish_reason") else "stop",
+                    finish_reason=event.finish_reason
+                    if hasattr(event, "finish_reason")
+                    else "stop",
                     metadata={},
                 )
 
@@ -144,27 +146,27 @@ class CohereProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> Response:
         """Async generate a completion."""
         preamble, message, chat_history = self._convert_messages(messages)
-        
+
         params = {
             "model": model,
             "message": message,
             "temperature": temperature,
         }
-        
+
         if preamble:
             params["preamble"] = preamble
         if chat_history:
             params["chat_history"] = chat_history
         if max_tokens:
             params["max_tokens"] = max_tokens
-        
+
         response = await self.async_client.chat(**params)
-        
+
         usage = {
             "prompt_tokens": response.meta.tokens.input_tokens if response.meta else 0,
             "completion_tokens": response.meta.tokens.output_tokens if response.meta else 0,
@@ -174,7 +176,7 @@ class CohereProvider(Provider):
                 else 0
             ),
         }
-        
+
         return Response(
             content=response.text,
             model=model,
@@ -188,27 +190,27 @@ class CohereProvider(Provider):
         messages: list[Message],
         model: str,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Async stream a completion."""
         preamble, message, chat_history = self._convert_messages(messages)
-        
+
         params = {
             "model": model,
             "message": message,
             "temperature": temperature,
         }
-        
+
         if preamble:
             params["preamble"] = preamble
         if chat_history:
             params["chat_history"] = chat_history
         if max_tokens:
             params["max_tokens"] = max_tokens
-        
+
         stream = self.async_client.chat_stream(**params)
-        
+
         async for event in stream:
             if event.event_type == "text-generation":
                 yield StreamChunk(
@@ -219,6 +221,8 @@ class CohereProvider(Provider):
             elif event.event_type == "stream-end":
                 yield StreamChunk(
                     content="",
-                    finish_reason=event.finish_reason if hasattr(event, "finish_reason") else "stop",
+                    finish_reason=event.finish_reason
+                    if hasattr(event, "finish_reason")
+                    else "stop",
                     metadata={},
                 )

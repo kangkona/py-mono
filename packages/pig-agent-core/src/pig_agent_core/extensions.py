@@ -2,8 +2,9 @@
 
 import importlib.util
 import inspect
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 from .tools import Tool
 
@@ -114,6 +115,7 @@ class ExtensionAPI:
             def on_tool_start(event, context):
                 print(f"Tool {event['tool_name']} starting")
         """
+
         def _register(h: Callable) -> Callable:
             if event not in self._event_handlers:
                 self._event_handlers[event] = []
@@ -259,7 +261,7 @@ class ExtensionManager:
         """
         self.api.emit(event, data)
 
-    def handle_command(self, command: str, args: Optional[str] = None) -> Any:
+    def handle_command(self, command: str, args: str | None = None) -> Any:
         """Handle a slash command.
 
         Args:

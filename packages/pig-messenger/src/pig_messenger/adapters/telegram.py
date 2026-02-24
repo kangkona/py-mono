@@ -1,14 +1,12 @@
 """Telegram platform adapter."""
 
-from typing import Optional, List
 from pathlib import Path
-from datetime import datetime
 
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
+from ..message import Attachment, UniversalMessage
 from ..platform import MessagePlatform
-from ..message import UniversalMessage, Attachment
 
 
 class TelegramAdapter(MessagePlatform):
@@ -91,7 +89,7 @@ class TelegramAdapter(MessagePlatform):
         self,
         channel_id: str,
         text: str,
-        thread_id: Optional[str] = None,
+        thread_id: str | None = None,
         **kwargs,
     ) -> str:
         """Send message to Telegram chat."""
@@ -108,8 +106,8 @@ class TelegramAdapter(MessagePlatform):
         self,
         channel_id: str,
         file_path: Path,
-        caption: Optional[str] = None,
-        thread_id: Optional[str] = None,
+        caption: str | None = None,
+        thread_id: str | None = None,
     ) -> str:
         """Upload file to Telegram."""
         message = await self.app.bot.send_document(
@@ -121,9 +119,7 @@ class TelegramAdapter(MessagePlatform):
 
         return str(message.message_id)
 
-    async def get_history(
-        self, channel_id: str, limit: int = 100
-    ) -> List[UniversalMessage]:
+    async def get_history(self, channel_id: str, limit: int = 100) -> list[UniversalMessage]:
         """Get Telegram chat history."""
         # Telegram doesn't provide easy history API
         # Would need to implement using updates

@@ -1,13 +1,12 @@
 """Chat interface components."""
 
 import sys
-from datetime import datetime
-from typing import Optional
 from contextlib import contextmanager
+from datetime import datetime
 
 from rich.console import Console
-from rich.panel import Panel
 from rich.markdown import Markdown
+from rich.panel import Panel
 
 from .theme import Theme
 
@@ -45,7 +44,7 @@ class ChatUI:
     def __init__(
         self,
         title: str = "Chat",
-        theme: Optional[Theme] = None,
+        theme: Theme | None = None,
         show_timestamps: bool = False,
         markdown_mode: bool = True,
     ):
@@ -77,7 +76,7 @@ class ChatUI:
         """
         timestamp = self._format_timestamp()
         prefix = f"{timestamp}[bold {self.theme.user_color}]User:[/] "
-        
+
         if self.markdown_mode:
             self.console.print(prefix, end="")
             self.console.print(Markdown(message))
@@ -92,7 +91,7 @@ class ChatUI:
         """
         timestamp = self._format_timestamp()
         prefix = f"{timestamp}[bold {self.theme.assistant_color}]Assistant:[/] "
-        
+
         if self.markdown_mode:
             self.console.print(prefix, end="")
             self.console.print(Markdown(message))
@@ -108,7 +107,7 @@ class ChatUI:
         """
         timestamp = self._format_timestamp()
         prefix = f"{timestamp}[bold {self.theme.assistant_color}]Assistant:[/] "
-        
+
         writer = StreamWriter(self.console, prefix, self.theme.assistant_color)
         yield writer
 
@@ -119,9 +118,7 @@ class ChatUI:
             message: System message
         """
         timestamp = self._format_timestamp()
-        self.console.print(
-            f"{timestamp}[{self.theme.system_color}]System: {message}[/]"
-        )
+        self.console.print(f"{timestamp}[{self.theme.system_color}]System: {message}[/]")
 
     def error(self, message: str) -> None:
         """Display error message.
@@ -130,9 +127,7 @@ class ChatUI:
             message: Error message
         """
         timestamp = self._format_timestamp()
-        self.console.print(
-            f"{timestamp}[bold {self.theme.error_color}]Error: {message}[/]"
-        )
+        self.console.print(f"{timestamp}[bold {self.theme.error_color}]Error: {message}[/]")
 
     def panel(self, content: str, title: str = "") -> None:
         """Display content in a panel.

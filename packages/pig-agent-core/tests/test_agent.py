@@ -1,7 +1,8 @@
 """Tests for Agent class."""
 
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, patch
 from pig_agent_core import Agent, tool
 from pig_agent_core.models import AgentState
 
@@ -36,27 +37,29 @@ def test_agent_with_system_prompt(mock_llm):
 
 def test_agent_add_tool(mock_llm):
     """Test adding a tool to agent."""
+
     @tool
     def my_tool(x: int) -> int:
         return x * 2
-    
+
     agent = Agent(llm=mock_llm)
     agent.add_tool(my_tool)
-    
+
     assert len(agent.registry) == 1
     assert "my_tool" in agent.registry
 
 
 def test_agent_with_tools(mock_llm):
     """Test agent initialized with tools."""
+
     @tool
     def tool1(x: int) -> int:
         return x
-    
+
     @tool
     def tool2(x: int) -> int:
         return x * 2
-    
+
     agent = Agent(llm=mock_llm, tools=[tool1, tool2])
     assert len(agent.registry) == 2
 
@@ -67,15 +70,16 @@ def test_agent_clear_history(mock_llm):
         llm=mock_llm,
         system_prompt="System",
     )
-    
+
     from pig_llm.models import Message
+
     agent.history.append(Message(role="user", content="Hello"))
     agent.history.append(Message(role="assistant", content="Hi"))
-    
+
     assert len(agent.history) == 3  # system + user + assistant
-    
+
     agent.clear_history()
-    
+
     # Should keep system prompt
     assert len(agent.history) == 1
     assert agent.history[0].role == "system"
@@ -88,7 +92,7 @@ def test_agent_get_state(mock_llm):
         llm=mock_llm,
         system_prompt="System prompt",
     )
-    
+
     state = agent.get_state()
     assert isinstance(state, AgentState)
     assert state.name == "TestAgent"
@@ -103,19 +107,20 @@ def test_agent_save_load_state(mock_llm, tmp_path):
         llm=mock_llm,
         system_prompt="System",
     )
-    
+
     from pig_llm.models import Message
+
     agent1.history.append(Message(role="user", content="Hello"))
-    
+
     # Save state
     state_file = tmp_path / "state.json"
     agent1.save_state(state_file)
-    
+
     assert state_file.exists()
-    
+
     # Load state
     agent2 = Agent.from_state(state_file, llm=mock_llm)
-    
+
     assert agent2.name == "TestAgent"
     assert agent2.system_prompt == "System"
     assert len(agent2.history) == 2  # system + user

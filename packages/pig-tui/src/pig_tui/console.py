@@ -1,10 +1,11 @@
 """Console output with rich formatting."""
 
 from typing import Any
+
 from rich.console import Console as RichConsole
+from rich.json import JSON
 from rich.markdown import Markdown
 from rich.syntax import Syntax
-from rich.json import JSON
 
 
 class Console:
