@@ -46,5 +46,5 @@ def test_config_max_tokens_validation():
 def test_config_frozen():
     """Test config is frozen (immutable)."""
     config = Config()
-    with pytest.raises(Exception):  # Pydantic ValidationError
+    with pytest.raises(Exception):  # Pydantic ValidationError  # noqa: B017
         config.temperature = 0.5

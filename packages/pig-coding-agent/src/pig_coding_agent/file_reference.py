@@ -82,7 +82,6 @@ class FileReferenceParser:
             return text
 
         # Build expanded text
-        expanded_parts = [text]
         file_contents = []
 
         for ref in references:

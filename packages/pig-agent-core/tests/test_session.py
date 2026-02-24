@@ -44,9 +44,9 @@ def test_session_tree_branching():
     """Test branching in tree."""
     tree = SessionTree()
 
-    e1 = tree.add_entry("system", "System")
+    tree.add_entry("system", "System")
     e2 = tree.add_entry("user", "User 1")
-    e3 = tree.add_entry("assistant", "Response 1")
+    tree.add_entry("assistant", "Response 1")
 
     # Branch from e2
     tree.switch_to(e2.id)
@@ -110,7 +110,7 @@ def test_session_branch():
     session = Session(name="test", auto_save=False)
 
     e1 = session.add_message("user", "Message 1")
-    e2 = session.add_message("assistant", "Response 1")
+    session.add_message("assistant", "Response 1")
 
     # Branch to e1
     session.branch_to(e1.id)
@@ -123,9 +123,9 @@ def test_session_fork():
     """Test forking a session."""
     session = Session(name="original", auto_save=False)
 
-    e1 = session.add_message("user", "Message 1")
+    session.add_message("user", "Message 1")
     e2 = session.add_message("assistant", "Response 1")
-    e3 = session.add_message("user", "Message 2")
+    session.add_message("user", "Message 2")
 
     # Fork from e2
     fork = session.fork(e2.id, "forked")

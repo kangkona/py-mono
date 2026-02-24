@@ -268,7 +268,7 @@ class Session:
         summary_content = f"[Compacted {len(old)} messages]\n"
         if instructions:
             summary_content += f"Instructions: {instructions}\n"
-        summary_content += f"Topics covered: {len(set(e.role for e in old))} roles"
+        summary_content += f"Topics covered: {len({e.role for e in old})} roles"
 
         # Create compacted entry
         compacted = self.add_message(

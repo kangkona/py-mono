@@ -58,7 +58,7 @@ class TestProviderRegistration:
         from pig_llm.config import Config
 
         # Get the Literal type from Config.provider
-        provider_field = Config.__fields__["provider"]
+        Config.__fields__["provider"]
         # Check that new providers are included
         # This is a basic sanity check
 

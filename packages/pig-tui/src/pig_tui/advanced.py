@@ -257,7 +257,7 @@ class InteractiveTable:
         """
         from rich.prompt import Prompt
 
-        console = Console()
+        Console()
 
         self.show()
 

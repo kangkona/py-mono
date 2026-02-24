@@ -171,7 +171,7 @@ def test_compact_command(mock_llm, temp_workspace):
     for i in range(15):
         agent.session.add_message("user", f"Message {i}")
 
-    before = len(agent.session.tree.entries)
+    len(agent.session.tree.entries)
 
     # Run /compact
     agent._handle_command("/compact")

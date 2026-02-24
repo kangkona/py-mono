@@ -3,10 +3,9 @@
 from collections.abc import AsyncIterator, Iterator
 
 try:
-    import cohere
     from cohere import AsyncClient, Client
-except ImportError:
-    raise ImportError("cohere is required. Install with: pip install cohere")
+except ImportError as err:
+    raise ImportError("cohere is required. Install with: pip install cohere") from err
 
 from ..config import Config
 from ..models import Message, Response, StreamChunk

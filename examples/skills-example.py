@@ -69,7 +69,7 @@ def main():
 
     # Create sample skill
     print("1. Creating sample skill...")
-    skill_file = create_sample_skill()
+    create_sample_skill()
 
     # Create skill manager
     print("\n2. Creating skill manager...")

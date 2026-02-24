@@ -31,7 +31,7 @@ def test_agent_to_tui_integration():
         from pig_llm import LLM
 
         llm = LLM(provider="openai", api_key="test")
-        agent = Agent(llm=llm)
+        Agent(llm=llm)
 
     # Create chat UI
     chat = ChatUI(title="Test")

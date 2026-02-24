@@ -152,7 +152,7 @@ def test_main_with_custom_model(mock_agent_class, mock_llm_class, mock_env, mock
     mock_agent.extension_manager = None
     mock_agent_class.return_value = mock_agent
 
-    with patch("pig_coding_agent.cli.console") as mock_console:
+    with patch("pig_coding_agent.cli.console"):
         main(ctx=mock_ctx, model="gpt-4", provider="openai", workspace=Path("."), verbose=True)
 
         # Verify LLM created with correct model

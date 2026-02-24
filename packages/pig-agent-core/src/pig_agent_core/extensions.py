@@ -197,7 +197,7 @@ class ExtensionManager:
             extension_func = module.default
         else:
             # Look for any function that takes ExtensionAPI
-            for name, obj in inspect.getmembers(module, inspect.isfunction):
+            for _name, obj in inspect.getmembers(module, inspect.isfunction):
                 sig = inspect.signature(obj)
                 params = list(sig.parameters.values())
                 if params and "api" in params[0].name.lower():

@@ -116,7 +116,7 @@ def test_build_system_prompt_with_append(temp_workspace):
 
 def test_find_context_files_hierarchy(temp_workspace):
     """Test finding files in hierarchy."""
-    ctx = ContextManager(temp_workspace)
+    ContextManager(temp_workspace)
 
     # Create nested structure
     subdir = temp_workspace / "subdir"

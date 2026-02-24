@@ -1,7 +1,10 @@
 """CLI entry point for py-coding-agent."""
 
+import json
 import os
+import sys
 from pathlib import Path
+from typing import Any
 
 import typer
 from pig_llm import LLM

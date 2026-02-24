@@ -128,7 +128,8 @@ class CodingAgent:
     def _get_system_prompt(self) -> str:
         """Get system prompt for coding agent."""
         # Default prompt
-        default_prompt = f"""You are an expert coding assistant with access to file operations and code generation tools.
+        default_prompt = f"""\
+You are an expert coding assistant with access to file operations and code generation tools.
 
 Workspace: {self.workspace}
 
@@ -497,17 +498,17 @@ Tools: {len(self.agent.registry)}
         info_text = f"""
 **Session Information**
 
-ID: {info['id'][:8]}...
-Name: {info['name']}
-Created: {info['created_at'][:19]}
-Updated: {info['updated_at'][:19]}
+ID: {info["id"][:8]}...
+Name: {info["name"]}
+Created: {info["created_at"][:19]}
+Updated: {info["updated_at"][:19]}
 
-Entries: {info['entries']}
-Current path: {info['current_path_length']}
-Branches: {info['branches']}
+Entries: {info["entries"]}
+Current path: {info["current_path_length"]}
+Branches: {info["branches"]}
 
-Tokens: {info['metadata'].get('tokens_used', 0)}
-Cost: ${info['metadata'].get('cost', 0.0):.4f}
+Tokens: {info["metadata"].get("tokens_used", 0)}
+Cost: ${info["metadata"].get("cost", 0.0):.4f}
         """
         self.ui.panel(info_text, title="Session")
 
@@ -696,7 +697,8 @@ Files are automatically read and added to context!
             vars_text = "**Template Variables**:\n\n"
             for var in template.variables:
                 vars_text += f"• {var}\n"
-            vars_text += f"\n**Usage**: `/{template_name} {' '.join(f'{v}=value' for v in template.variables)}`"
+            usage_args = " ".join(f"{v}=value" for v in template.variables)
+            vars_text += f"\n**Usage**: `/{template_name} {usage_args}`"
             vars_text += f'\n\n**Example**: `/{template_name} {template.variables[0]}="example"`'
             self.ui.panel(vars_text, title=f"Template: {template_name}")
             return
@@ -807,16 +809,6 @@ Full: {current}
         """Login to a provider via OAuth."""
 
         # Supported providers (examples)
-        providers_config = {
-            "anthropic": {
-                "name": "anthropic",
-                "client_id": "your-client-id",  # Users need to configure
-                "auth_url": "https://console.anthropic.com/oauth/authorize",
-                "token_url": "https://console.anthropic.com/oauth/token",
-                "scope": "read write",
-            },
-            # Add more providers as they become available
-        }
 
         self.ui.panel(
             """
@@ -890,9 +882,9 @@ For now, use API keys:
                 f"""
 **Gist Created**
 
-URL: {info['url']}
-ID: {info['id']}
-Public: {info['public']}
+URL: {info["url"]}
+ID: {info["id"]}
+Public: {info["public"]}
 
 Share this URL to give others access.
             """,
@@ -948,19 +940,19 @@ Share this URL to give others access.
 **Agent Configuration**
 
 Provider: {config.provider}
-Model: {config.model or 'default'}
+Model: {config.model or "default"}
 Temperature: {config.temperature}
 
 **Features**
 
-Extensions: {'enabled' if config.enable_extensions else 'disabled'}
-Skills: {'enabled' if config.enable_skills else 'disabled'}
-Prompts: {'enabled' if config.enable_prompts else 'disabled'}
-Context: {'enabled' if config.enable_context else 'disabled'}
+Extensions: {"enabled" if config.enable_extensions else "disabled"}
+Skills: {"enabled" if config.enable_skills else "disabled"}
+Prompts: {"enabled" if config.enable_prompts else "disabled"}
+Context: {"enabled" if config.enable_context else "disabled"}
 
 **Session**
 
-Auto-save: {'yes' if config.auto_save_session else 'no'}
+Auto-save: {"yes" if config.auto_save_session else "no"}
 Cleanup: {config.session_cleanup_days} days
 
 **Display**
@@ -1041,9 +1033,9 @@ Tools available: {len(self.agent.registry)}
 **Session**
 
 Name: {self.session.name}
-Entries: {info['entries']}
-Current path: {info['current_path_length']}
-Branches: {info['branches']}
+Entries: {info["entries"]}
+Current path: {info["current_path_length"]}
+Branches: {info["branches"]}
 """
 
         if self.skill_manager:

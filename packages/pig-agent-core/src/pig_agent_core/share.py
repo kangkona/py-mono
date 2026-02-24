@@ -102,7 +102,7 @@ class GistSharer:
             HTML preview URL
         """
         # GitHub gist HTML files can be previewed via htmlpreview.github.io
-        gist_id = gist_url.split("/")[-1]
+        gist_url.split("/")[-1]
 
         # Extract username and gist_id
         # URL format: https://gist.github.com/username/gist_id

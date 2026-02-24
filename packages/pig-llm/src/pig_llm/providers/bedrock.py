@@ -5,8 +5,8 @@ from collections.abc import AsyncIterator, Iterator
 try:
     import boto3
     from botocore.config import Config as BotoConfig
-except ImportError:
-    raise ImportError("boto3 is required for Bedrock. Install with: pip install boto3")
+except ImportError as err:
+    raise ImportError("boto3 is required for Bedrock. Install with: pip install boto3") from err
 
 from ..config import Config
 from ..models import Message, Response, StreamChunk

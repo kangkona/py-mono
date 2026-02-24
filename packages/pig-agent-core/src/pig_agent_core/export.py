@@ -166,7 +166,7 @@ class SessionExporter:
             <div class="message {entry.role}">
                 <div class="role {entry.role}">{entry.role}</div>
                 <div class="content">{content_html}</div>
-                {f'<div class="timestamp">{timestamp_str}</div>' if timestamp_str else ''}
+                {f'<div class="timestamp">{timestamp_str}</div>' if timestamp_str else ""}
             </div>"""
 
             messages_html.append(msg_html)

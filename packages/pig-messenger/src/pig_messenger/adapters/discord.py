@@ -1,5 +1,6 @@
 """Discord platform adapter."""
 
+import asyncio
 from pathlib import Path
 
 import discord
