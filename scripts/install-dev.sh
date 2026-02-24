@@ -1,22 +1,58 @@
 #!/bin/bash
 # Install all packages in development mode
+#
+# Creates isolated venvs per CLI package using uv, then symlinks
+# the CLI entry points to ~/.local/bin/. This avoids pipx's inability
+# to resolve local monorepo dependencies.
 
 set -e
 
 echo "Installing py-mono packages in development mode..."
 
-# Get the script directory and repo root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+VENVS_DIR="$HOME/.local/py-mono-venvs"
+BIN_DIR="$HOME/.local/bin"
 
 cd "$REPO_ROOT"
 
-# Install each package in editable mode
-for pkg in packages/*/; do
-    if [ -f "$pkg/pyproject.toml" ]; then
-        echo "Installing $(basename "$pkg")..."
-        pip install -e "$pkg"
-    fi
+mkdir -p "$VENVS_DIR" "$BIN_DIR"
+
+# All local library packages (installed as editable into every venv)
+LOCAL_PKGS="-e packages/py-ai -e packages/py-tui -e packages/py-agent-core"
+
+install_pkg() {
+    local name="$1"
+    local pkg_path="$2"
+    shift 2
+    # remaining args are "cli_name" entries from [project.scripts]
+    local venv_dir="$VENVS_DIR/$name"
+
+    echo "Installing $name..."
+
+    # Create venv
+    uv venv "$venv_dir" --quiet
+
+    # Install the package + all local deps
+    uv pip install --python "$venv_dir/bin/python" \
+        -e "$pkg_path" $LOCAL_PKGS --quiet
+
+    # Symlink CLI entry points
+    for cli_name in "$@"; do
+        ln -sf "$venv_dir/bin/$cli_name" "$BIN_DIR/$cli_name"
+        echo "  ✓ $cli_name -> $BIN_DIR/$cli_name"
+    done
+    echo
+}
+
+# Uninstall old pipx versions if they exist
+for pkg in py-web-ui py-coding-agent py-messenger; do
+    pipx uninstall "$pkg" 2>/dev/null || true
 done
 
+install_pkg py-web-ui      packages/py-web-ui      py-webui
+install_pkg py-coding-agent packages/py-coding-agent py-code
+install_pkg py-messenger    packages/py-messenger    py-messenger
+
 echo "✓ All packages installed successfully!"
+echo "Make sure $BIN_DIR is in your PATH."

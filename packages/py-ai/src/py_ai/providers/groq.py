@@ -6,7 +6,7 @@ from groq import Groq, AsyncGroq
 
 from ..config import Config
 from ..models import Message, Response, StreamChunk
-from ..providers import Provider
+from ._base import Provider
 
 
 class GroqProvider(Provider):

@@ -11,7 +11,7 @@ except ImportError:
 
 from ..config import Config
 from ..models import Message, Response, StreamChunk
-from ..providers import Provider
+from ._base import Provider
 
 
 class BedrockProvider(Provider):

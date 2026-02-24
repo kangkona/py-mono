@@ -1,9 +1,9 @@
-"""Provider implementations."""
+"""Base provider class."""
 
 from abc import ABC, abstractmethod
 from typing import AsyncIterator, Iterator, Optional
 
-from .models import Message, Response, StreamChunk
+from ..models import Message, Response, StreamChunk
 
 
 class Provider(ABC):

@@ -84,10 +84,10 @@ def main(
         console.print("\n[yellow]Server stopped[/yellow]")
 
 
+def cli():
+    """Entry point for py-webui command."""
+    typer.run(main)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        # Use typer if arguments provided
-        typer.run(main)
-    else:
-        # Run with defaults
-        main()
+    cli()

@@ -49,14 +49,14 @@ pip install -e ".[dev]"
 ```bash
 # OpenRouter gives you access to 100+ models with one API key
 export OPENROUTER_API_KEY=your-key
-py-webui --provider openrouter --model openai/gpt-4o-mini
+py-webui --provider openrouter --model stepfun/step-3.5-flash:free
 # Open http://localhost:8000
 ```
 
 **Coding Agent** (powerful):
 ```bash
 export OPENROUTER_API_KEY=your-key
-py-code --provider openrouter --model anthropic/claude-3.5-sonnet
+py-code --provider openrouter --model stepfun/step-3.5-flash:free
 
 # Try these features:
 > Review @src/main.py for bugs          # @file references

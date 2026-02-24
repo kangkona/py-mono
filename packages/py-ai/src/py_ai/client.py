@@ -34,45 +34,34 @@ class LLM:
         self.config = config
         self._provider = self._init_provider()
 
+    # Maps provider name to (module, class_name) for lazy import
+    _PROVIDER_MAP = {
+        "openai": ("openai", "OpenAIProvider"),
+        "anthropic": ("anthropic", "AnthropicProvider"),
+        "google": ("google", "GoogleProvider"),
+        "azure": ("azure", "AzureOpenAIProvider"),
+        "groq": ("groq", "GroqProvider"),
+        "mistral": ("mistral", "MistralProvider"),
+        "openrouter": ("openrouter", "OpenRouterProvider"),
+        "bedrock": ("bedrock", "BedrockProvider"),
+        "xai": ("xai", "XAIProvider"),
+        "cerebras": ("cerebras", "CerebrasProvider"),
+        "cohere": ("cohere", "CohereProvider"),
+        "perplexity": ("perplexity", "PerplexityProvider"),
+        "deepseek": ("deepseek", "DeepSeekProvider"),
+        "together": ("together", "TogetherProvider"),
+    }
+
     def _init_provider(self):
         """Initialize the provider client."""
-        # Import providers here to avoid circular imports
-        from .providers.openai import OpenAIProvider
-        from .providers.anthropic import AnthropicProvider
-        from .providers.google import GoogleProvider
-        from .providers.azure import AzureOpenAIProvider
-        from .providers.groq import GroqProvider
-        from .providers.mistral import MistralProvider
-        from .providers.openrouter import OpenRouterProvider
-        from .providers.bedrock import BedrockProvider
-        from .providers.xai import XAIProvider
-        from .providers.cerebras import CerebrasProvider
-        from .providers.cohere import CohereProvider
-        from .providers.perplexity import PerplexityProvider
-        from .providers.deepseek import DeepSeekProvider
-        from .providers.together import TogetherProvider
-
-        provider_map = {
-            "openai": OpenAIProvider,
-            "anthropic": AnthropicProvider,
-            "google": GoogleProvider,
-            "azure": AzureOpenAIProvider,
-            "groq": GroqProvider,
-            "mistral": MistralProvider,
-            "openrouter": OpenRouterProvider,
-            "bedrock": BedrockProvider,
-            "xai": XAIProvider,
-            "cerebras": CerebrasProvider,
-            "cohere": CohereProvider,
-            "perplexity": PerplexityProvider,
-            "deepseek": DeepSeekProvider,
-            "together": TogetherProvider,
-        }
-
-        provider_class = provider_map.get(self.config.provider)
-        if not provider_class:
+        entry = self._PROVIDER_MAP.get(self.config.provider)
+        if not entry:
             raise ValueError(f"Unknown provider: {self.config.provider}")
 
+        module_name, class_name = entry
+        import importlib
+        mod = importlib.import_module(f".providers.{module_name}", package="py_ai")
+        provider_class = getattr(mod, class_name)
         return provider_class(self.config)
 
     def complete(
