@@ -14,12 +14,13 @@ from pig_messenger.message import Attachment, UniversalMessage
 
 
 def _make_adapter(**kwargs):
-    """Create a FeishuAdapter with mocked httpx client."""
+    """Create a FeishuAdapter in webhook mode with mocked httpx client."""
     adapter = FeishuAdapter(
         app_id=kwargs.get("app_id", "cli_test_app_id"),
         app_secret=kwargs.get("app_secret", "test_app_secret"),
         verification_token=kwargs.get("verification_token", "test_verify_token"),
         encrypt_key=kwargs.get("encrypt_key", "test_encrypt_key"),
+        use_ws=False,
     )
     mock_client = AsyncMock()
     adapter.client = mock_client
@@ -360,3 +361,199 @@ class TestStartStop:
     def test_stop_no_error(self):
         adapter, _ = _make_adapter()
         adapter.stop()  # should not raise
+
+
+# ---------------------------------------------------------------------------
+# SDK (WebSocket) mode
+# ---------------------------------------------------------------------------
+
+
+def _mock_lark_module():
+    """Build a mock lark_oapi module tree sufficient for FeishuAdapter._init_sdk."""
+    lark = MagicMock()
+    # LogLevel enum
+    lark.LogLevel.INFO = "INFO"
+    # EventDispatcherHandler builder chain
+    handler_builder = MagicMock()
+    handler_builder.register_p2_im_message_receive_v1.return_value = handler_builder
+    handler_builder.build.return_value = MagicMock(name="event_handler")
+    lark.EventDispatcherHandler.builder.return_value = handler_builder
+    # Client builder chain
+    client_builder = MagicMock()
+    client_builder.app_id.return_value = client_builder
+    client_builder.app_secret.return_value = client_builder
+    client_builder.build.return_value = MagicMock(name="lark_client")
+    lark.Client.builder.return_value = client_builder
+    # ws.Client
+    lark.ws.Client.return_value = MagicMock(name="ws_client")
+    return lark
+
+
+class TestFeishuSDKMode:
+    """Tests for use_ws=True (SDK long-connection mode)."""
+
+    def _make_sdk_adapter(self):
+        """Create adapter in SDK mode with mocked lark_oapi."""
+        import sys
+
+        mock_lark = _mock_lark_module()
+        # Patch lark_oapi in sys.modules so the lazy import picks it up
+        saved = sys.modules.get("lark_oapi")
+        sys.modules["lark_oapi"] = mock_lark
+        try:
+            adapter = FeishuAdapter(
+                app_id="cli_sdk_id",
+                app_secret="sdk_secret",
+                use_ws=True,
+            )
+        finally:
+            if saved is None:
+                sys.modules.pop("lark_oapi", None)
+            else:
+                sys.modules["lark_oapi"] = saved
+        return adapter, mock_lark
+
+    def test_init_creates_ws_client(self):
+        adapter, mock_lark = self._make_sdk_adapter()
+        assert adapter._ws_client is not None
+        assert adapter._lark_client is not None
+        mock_lark.ws.Client.assert_called_once()
+
+    def test_start_calls_ws_client_start(self):
+        adapter, _ = self._make_sdk_adapter()
+        adapter.start()
+        adapter._ws_client.start.assert_called_once()
+
+    def test_stop_calls_ws_client_stop(self):
+        adapter, _ = self._make_sdk_adapter()
+        adapter.stop()
+        adapter._ws_client.stop.assert_called_once()
+
+    def test_stop_noop_when_no_ws_client(self):
+        adapter, _ = self._make_sdk_adapter()
+        adapter._ws_client = None
+        adapter.stop()  # should not raise
+
+    def test_send_message_sdk(self):
+        adapter, _ = self._make_sdk_adapter()
+        # Mock the SDK response
+        mock_resp = MagicMock()
+        mock_resp.success.return_value = True
+        mock_resp.data.message_id = "om_sdk_001"
+        adapter._lark_client.im.v1.message.create.return_value = mock_resp
+
+        import sys
+
+        mock_im = MagicMock()
+        body_builder = MagicMock()
+        body_builder.receive_id.return_value = body_builder
+        body_builder.msg_type.return_value = body_builder
+        body_builder.content.return_value = body_builder
+        body_builder.build.return_value = MagicMock(name="body")
+        mock_im.CreateMessageRequestBody.builder.return_value = body_builder
+
+        req_builder = MagicMock()
+        req_builder.receive_id_type.return_value = req_builder
+        req_builder.request_body.return_value = req_builder
+        req_builder.build.return_value = MagicMock(name="request")
+        mock_im.CreateMessageRequest.builder.return_value = req_builder
+
+        saved = sys.modules.get("lark_oapi.api.im.v1")
+        sys.modules["lark_oapi.api.im.v1"] = mock_im
+        try:
+            msg_id = _run(adapter.send_message("oc_chat001", "hello sdk"))
+        finally:
+            if saved is None:
+                sys.modules.pop("lark_oapi.api.im.v1", None)
+            else:
+                sys.modules["lark_oapi.api.im.v1"] = saved
+
+        assert msg_id == "om_sdk_001"
+        adapter._lark_client.im.v1.message.create.assert_called_once()
+
+    def test_send_message_sdk_failure_raises(self):
+        adapter, _ = self._make_sdk_adapter()
+        mock_resp = MagicMock()
+        mock_resp.success.return_value = False
+        mock_resp.code = 99999
+        mock_resp.msg = "permission denied"
+        adapter._lark_client.im.v1.message.create.return_value = mock_resp
+
+        import sys
+
+        mock_im = MagicMock()
+        builder = MagicMock()
+        builder.receive_id.return_value = builder
+        builder.msg_type.return_value = builder
+        builder.content.return_value = builder
+        builder.build.return_value = MagicMock()
+        mock_im.CreateMessageRequestBody.builder.return_value = builder
+
+        req_builder = MagicMock()
+        req_builder.receive_id_type.return_value = req_builder
+        req_builder.request_body.return_value = req_builder
+        req_builder.build.return_value = MagicMock()
+        mock_im.CreateMessageRequest.builder.return_value = req_builder
+
+        saved = sys.modules.get("lark_oapi.api.im.v1")
+        sys.modules["lark_oapi.api.im.v1"] = mock_im
+        try:
+            with pytest.raises(RuntimeError, match="permission denied"):
+                _run(adapter.send_message("oc_chat001", "fail"))
+        finally:
+            if saved is None:
+                sys.modules.pop("lark_oapi.api.im.v1", None)
+            else:
+                sys.modules["lark_oapi.api.im.v1"] = saved
+
+    def test_on_sdk_message_emits(self):
+        adapter, _ = self._make_sdk_adapter()
+        captured = []
+
+        async def handler(msg):
+            captured.append(msg)
+
+        adapter.set_message_handler(handler)
+
+        # Build a mock P2ImMessageReceiveV1
+        data = MagicMock()
+        data.event.message.message_id = "om_sdk_msg"
+        data.event.message.chat_id = "oc_sdk_chat"
+        data.event.message.content = json.dumps({"text": "@_user_1 hi sdk"})
+        data.event.message.mentions = None
+        data.event.message.create_time = "1700000000000"
+        data.event.sender.sender_id.open_id = "ou_sdk_sender"
+        data.event.sender.sender_id.user_id = "sdk_alice"
+
+        adapter._on_sdk_message(data)
+
+        assert len(captured) == 1
+        msg = captured[0]
+        assert msg.text == "hi sdk"
+        assert msg.channel_id == "oc_sdk_chat"
+        assert msg.user_id == "ou_sdk_sender"
+        assert msg.is_mention is False
+
+    def test_on_sdk_message_with_mentions(self):
+        adapter, _ = self._make_sdk_adapter()
+        captured = []
+
+        async def handler(msg):
+            captured.append(msg)
+
+        adapter.set_message_handler(handler)
+
+        data = MagicMock()
+        data.event.message.message_id = "om_sdk_m2"
+        data.event.message.chat_id = "oc_sdk_chat2"
+        data.event.message.content = json.dumps({"text": "@_user_1 review this"})
+        data.event.message.mentions = [{"key": "@_all"}]
+        data.event.message.create_time = "1700000001000"
+        data.event.sender.sender_id.open_id = "ou_bob"
+        data.event.sender.sender_id.user_id = "bob"
+
+        adapter._on_sdk_message(data)
+
+        assert len(captured) == 1
+        assert captured[0].is_mention is True
+        assert captured[0].text == "review this"

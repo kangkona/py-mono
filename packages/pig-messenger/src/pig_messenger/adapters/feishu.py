@@ -1,18 +1,31 @@
 """Feishu (飞书/Lark) platform adapter."""
 
+from __future__ import annotations
+
 import json
 import re
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx
 
 from ..message import Attachment, UniversalMessage
 from ..platform import MessagePlatform
 
+if TYPE_CHECKING:
+    import lark_oapi as lark
+
 
 class FeishuAdapter(MessagePlatform):
-    """Feishu (Lark) platform adapter."""
+    """Feishu (Lark) platform adapter.
+
+    Supports two modes:
+    - ``use_ws=True`` (default): SDK long-connection via ``lark_oapi``.
+      ``start()`` blocks like SlackAdapter.
+    - ``use_ws=False``: Webhook mode – requires an external callback server
+      that calls ``handle_event()``.
+    """
 
     def __init__(
         self,
@@ -20,6 +33,8 @@ class FeishuAdapter(MessagePlatform):
         app_secret: str,
         verification_token: str | None = None,
         encrypt_key: str | None = None,
+        *,
+        use_ws: bool = True,
     ):
         """Initialize Feishu adapter.
 
@@ -28,6 +43,7 @@ class FeishuAdapter(MessagePlatform):
             app_secret: Feishu app secret
             verification_token: Event verification token
             encrypt_key: Event encryption key
+            use_ws: Use SDK WebSocket long connection (default True)
         """
         super().__init__("feishu")
 
@@ -35,10 +51,81 @@ class FeishuAdapter(MessagePlatform):
         self.app_secret = app_secret
         self.verification_token = verification_token
         self.encrypt_key = encrypt_key
+        self.use_ws = use_ws
 
-        self.api_base = "https://open.feishu.cn/open-apis"
-        self.client = httpx.AsyncClient()
-        self.tenant_access_token = None
+        self._ws_client: lark.ws.Client | None = None
+        self._lark_client: lark.Client | None = None
+
+        if use_ws:
+            self._init_sdk()
+        else:
+            self.api_base = "https://open.feishu.cn/open-apis"
+            self.client = httpx.AsyncClient()
+            self.tenant_access_token = None
+
+    # ------------------------------------------------------------------
+    # SDK (WebSocket) helpers
+    # ------------------------------------------------------------------
+
+    def _init_sdk(self) -> None:
+        """Build lark_oapi objects for WebSocket mode."""
+        import lark_oapi as lark
+
+        event_handler = (
+            lark.EventDispatcherHandler.builder(
+                self.verification_token or "",
+                self.encrypt_key or "",
+            )
+            .register_p2_im_message_receive_v1(self._on_sdk_message)
+            .build()
+        )
+
+        self._lark_client = (
+            lark.Client.builder().app_id(self.app_id).app_secret(self.app_secret).build()
+        )
+
+        self._ws_client = lark.ws.Client(
+            app_id=self.app_id,
+            app_secret=self.app_secret,
+            event_handler=event_handler,
+            log_level=lark.LogLevel.INFO,
+        )
+
+    def _on_sdk_message(self, data) -> None:
+        """Handle incoming message from SDK long connection.
+
+        ``data`` is a ``P2ImMessageReceiveV1`` instance from lark_oapi.
+        """
+        import asyncio
+
+        event = data.event
+        message = event.message
+        sender = event.sender
+
+        content = json.loads(message.content) if message.content else {}
+        text = re.sub(r"@_user_\d+", "", content.get("text", "")).strip()
+
+        msg = UniversalMessage(
+            id=message.message_id or "",
+            platform="feishu",
+            channel_id=message.chat_id or "",
+            user_id=sender.sender_id.open_id or "",
+            username=sender.sender_id.user_id or "",
+            text=text,
+            timestamp=datetime.fromtimestamp(int(event.message.create_time or 0) / 1000),
+            is_mention=bool(message.mentions),
+            raw_data={},
+        )
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self._emit_message(msg))
+        except RuntimeError:
+            asyncio.run(self._emit_message(msg))
+
+    # ------------------------------------------------------------------
+    # Webhook helpers
+    # ------------------------------------------------------------------
 
     async def _get_tenant_access_token(self) -> str:
         """Get tenant access token.
@@ -79,6 +166,51 @@ class FeishuAdapter(MessagePlatform):
         Returns:
             Message ID
         """
+        if self.use_ws:
+            return self._send_message_sdk(channel_id, text, thread_id)
+        return await self._send_message_http(channel_id, text, thread_id)
+
+    def _send_message_sdk(
+        self,
+        channel_id: str,
+        text: str,
+        thread_id: str | None = None,
+    ) -> str:
+        """Send message via lark_oapi SDK client."""
+        from lark_oapi.api.im.v1 import (
+            CreateMessageRequest,
+            CreateMessageRequestBody,
+        )
+
+        receive_id_type = "open_id" if channel_id.startswith("ou_") else "chat_id"
+
+        body = (
+            CreateMessageRequestBody.builder()
+            .receive_id(channel_id)
+            .msg_type("text")
+            .content(json.dumps({"text": text}))
+            .build()
+        )
+
+        request = (
+            CreateMessageRequest.builder()
+            .receive_id_type(receive_id_type)
+            .request_body(body)
+            .build()
+        )
+
+        response = self._lark_client.im.v1.message.create(request)
+        if not response.success():
+            raise RuntimeError(f"Feishu SDK send failed: code={response.code}, msg={response.msg}")
+        return response.data.message_id
+
+    async def _send_message_http(
+        self,
+        channel_id: str,
+        text: str,
+        thread_id: str | None = None,
+    ) -> str:
+        """Send message via HTTP (webhook mode)."""
         token = await self._get_tenant_access_token()
 
         url = f"{self.api_base}/im/v1/messages"
@@ -237,11 +369,16 @@ class FeishuAdapter(MessagePlatform):
     def start(self) -> None:
         """Start Feishu adapter.
 
-        Requires external event callback server.
+        In WebSocket mode, this blocks (like SlackAdapter).
+        In webhook mode, prints setup instructions.
         """
-        print("Feishu adapter ready")
-        print("Configure event callback in Feishu Admin")
+        if self.use_ws:
+            self._ws_client.start()
+        else:
+            print("Feishu adapter ready")
+            print("Configure event callback in Feishu Admin")
 
     def stop(self) -> None:
         """Stop Feishu adapter."""
-        pass
+        if self._ws_client is not None:
+            self._ws_client.stop()
