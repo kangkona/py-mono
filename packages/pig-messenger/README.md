@@ -32,6 +32,9 @@ pip install pig-messenger
 # With Slack support
 pip install pig-messenger[slack]
 
+# With Feishu support (includes lark-oapi SDK)
+pip install pig-messenger[feishu]
+
 # With all platforms
 pip install pig-messenger[all]
 ```
@@ -167,10 +170,10 @@ bot.add_platform(adapter)
 
 **Option A: SDK Long Connection (recommended)**
 
-No webhook server or ngrok needed. Install `lark-oapi` and use the built-in WebSocket client:
+No webhook server or ngrok needed. Install with Feishu extras:
 
 ```bash
-pip install lark-oapi
+pip install pig-messenger[feishu]
 ```
 
 ```python
