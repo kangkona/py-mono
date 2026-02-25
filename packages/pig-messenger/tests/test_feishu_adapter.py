@@ -424,10 +424,11 @@ class TestFeishuSDKMode:
         adapter.start()
         adapter._ws_client.start.assert_called_once()
 
-    def test_stop_calls_ws_client_stop(self):
+    def test_stop_calls_ws_client_disconnect(self):
         adapter, _ = self._make_sdk_adapter()
+        adapter._ws_client._disconnect = AsyncMock()
         adapter.stop()
-        adapter._ws_client.stop.assert_called_once()
+        adapter._ws_client._disconnect.assert_called_once()
 
     def test_stop_noop_when_no_ws_client(self):
         adapter, _ = self._make_sdk_adapter()

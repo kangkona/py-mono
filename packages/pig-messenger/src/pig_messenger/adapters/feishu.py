@@ -95,33 +95,53 @@ class FeishuAdapter(MessagePlatform):
         """Handle incoming message from SDK long connection.
 
         ``data`` is a ``P2ImMessageReceiveV1`` instance from lark_oapi.
+
+        This runs synchronously inside the SDK's asyncio event loop,
+        so we dispatch the async handler via ``create_task`` with error
+        handling to prevent silent failures.
         """
         import asyncio
 
-        event = data.event
-        message = event.message
-        sender = event.sender
-
-        content = json.loads(message.content) if message.content else {}
-        text = re.sub(r"@_user_\d+", "", content.get("text", "")).strip()
-
-        msg = UniversalMessage(
-            id=message.message_id or "",
-            platform="feishu",
-            channel_id=message.chat_id or "",
-            user_id=sender.sender_id.open_id or "",
-            username=sender.sender_id.user_id or "",
-            text=text,
-            timestamp=datetime.fromtimestamp(int(event.message.create_time or 0) / 1000),
-            is_mention=bool(message.mentions),
-            raw_data={},
-        )
-
         try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(self._emit_message(msg))
-        except RuntimeError:
-            asyncio.run(self._emit_message(msg))
+            event = data.event
+            message = event.message
+            sender = event.sender
+
+            content = json.loads(message.content) if message.content else {}
+            text = re.sub(r"@_user_\d+", "", content.get("text", "")).strip()
+
+            msg = UniversalMessage(
+                id=message.message_id or "",
+                platform="feishu",
+                channel_id=message.chat_id or "",
+                user_id=sender.sender_id.open_id or "",
+                username=sender.sender_id.user_id or "",
+                text=text,
+                timestamp=datetime.fromtimestamp(int(message.create_time or 0) / 1000),
+                is_mention=bool(message.mentions),
+                raw_data={},
+            )
+
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self._safe_emit(msg))
+            except RuntimeError:
+                asyncio.run(self._emit_message(msg))
+        except Exception as e:
+            print(f"[FeishuAdapter] _on_sdk_message error: {e}")
+            import traceback
+
+            traceback.print_exc()
+
+    async def _safe_emit(self, msg: UniversalMessage) -> None:
+        """Emit message with error handling for fire-and-forget tasks."""
+        try:
+            await self._emit_message(msg)
+        except Exception as e:
+            print(f"[FeishuAdapter] message handler error: {e}")
+            import traceback
+
+            traceback.print_exc()
 
     # ------------------------------------------------------------------
     # Webhook helpers
@@ -381,4 +401,10 @@ class FeishuAdapter(MessagePlatform):
     def stop(self) -> None:
         """Stop Feishu adapter."""
         if self._ws_client is not None:
-            self._ws_client.stop()
+            import asyncio
+
+            try:
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(self._ws_client._disconnect())
+            except Exception:
+                pass
