@@ -63,7 +63,10 @@ bot.start()
 ### Multi-Platform Bot
 
 ```python
-from pig_messenger.adapters import SlackAdapter, DiscordAdapter, TelegramAdapter
+from pig_messenger.adapters import (
+    SlackAdapter, DiscordAdapter, TelegramAdapter,
+    WhatsAppAdapter, FeishuAdapter,
+)
 
 bot = MessengerBot(agent)
 bot.add_platform(SlackAdapter(
@@ -72,6 +75,14 @@ bot.add_platform(SlackAdapter(
 ))
 bot.add_platform(DiscordAdapter(bot_token=os.environ["DISCORD_BOT_TOKEN"]))
 bot.add_platform(TelegramAdapter(bot_token=os.environ["TELEGRAM_BOT_TOKEN"]))
+bot.add_platform(WhatsAppAdapter(
+    phone_number_id=os.environ["WHATSAPP_PHONE_NUMBER_ID"],
+    access_token=os.environ["WHATSAPP_ACCESS_TOKEN"],
+))
+bot.add_platform(FeishuAdapter(
+    app_id=os.environ["FEISHU_APP_ID"],
+    app_secret=os.environ["FEISHU_APP_SECRET"],
+))
 bot.start()  # All platforms run in parallel
 ```
 
@@ -94,14 +105,78 @@ bot.start()  # All platforms run in parallel
 
 ### Discord
 
-1. Create app at https://discord.com/developers
-2. Add bot with permissions: Read Messages, Send Messages, Attach Files
-3. Get bot token
+1. Create app at https://discord.com/developers/applications → New Application
+2. **Bot**: Settings → Bot → Add Bot, enable "Message Content Intent"
+3. **Permissions**: OAuth2 → URL Generator → Scopes: `bot`, Permissions: `Read Messages/View Channels`, `Send Messages`, `Attach Files`, `Read Message History`
+4. Copy the generated URL, open in browser to invite bot to your server
+5. Copy Bot Token from Bot settings page
+
+```python
+from pig_messenger.adapters import DiscordAdapter
+
+bot.add_platform(DiscordAdapter(
+    bot_token=os.environ["DISCORD_BOT_TOKEN"],
+))
+```
 
 ### Telegram
 
-1. Talk to @BotFather, create new bot
-2. Get token
+1. Talk to [@BotFather](https://t.me/BotFather) on Telegram, send `/newbot`
+2. Follow prompts to set bot name and username
+3. Copy the bot token BotFather gives you
+
+```python
+from pig_messenger.adapters import TelegramAdapter
+
+bot.add_platform(TelegramAdapter(
+    bot_token=os.environ["TELEGRAM_BOT_TOKEN"],
+))
+```
+
+### WhatsApp
+
+Requires a [WhatsApp Business API](https://developers.facebook.com/docs/whatsapp/cloud-api) account.
+
+1. Create app at https://developers.facebook.com → My Apps → Create App → Business
+2. Add WhatsApp product to your app
+3. In WhatsApp → API Setup, get your **Phone Number ID** and generate a **Temporary Access Token** (or create a permanent System User token)
+4. Configure a webhook to receive incoming messages (subscribe to `messages` field)
+
+```python
+from pig_messenger.adapters import WhatsAppAdapter
+
+adapter = WhatsAppAdapter(
+    phone_number_id=os.environ["WHATSAPP_PHONE_NUMBER_ID"],
+    access_token=os.environ["WHATSAPP_ACCESS_TOKEN"],
+    verify_token="your-verify-token",  # For webhook verification
+)
+bot.add_platform(adapter)
+```
+
+> **Note**: WhatsApp requires you to run your own webhook server (e.g. FastAPI/Flask) and call `adapter.handle_webhook(payload)` when receiving events. Message history retrieval is not supported by the WhatsApp Business API.
+
+### Feishu (飞书)
+
+1. Go to [飞书开放平台](https://open.feishu.cn/app) → Create Custom App
+2. In **Credentials & Basic Info**, get your **App ID** and **App Secret**
+3. **Permissions**: Add `im:message`, `im:message:send_as_bot`, `im:resource`, `im:chat:readonly`
+4. **Event Subscriptions**: Subscribe to `im.message.receive_v1` event, configure your callback URL
+5. Get the **Verification Token** and **Encrypt Key** from Event Subscriptions page
+6. Publish the app version and have admin approve it
+
+```python
+from pig_messenger.adapters import FeishuAdapter
+
+adapter = FeishuAdapter(
+    app_id=os.environ["FEISHU_APP_ID"],
+    app_secret=os.environ["FEISHU_APP_SECRET"],
+    verification_token=os.environ.get("FEISHU_VERIFY_TOKEN"),
+    encrypt_key=os.environ.get("FEISHU_ENCRYPT_KEY"),
+)
+bot.add_platform(adapter)
+```
+
+> **Note**: Feishu requires you to run your own event callback server and call `adapter.handle_event(payload)` when receiving events. Supports both `chat_id` (group) and `open_id` (direct message) addressing.
 
 ## Advanced Usage
 
@@ -151,7 +226,7 @@ for key, session in sessions.items():
 ```
 User Message (any platform)
     ↓
-Platform Adapter (Slack/Discord/Telegram)
+Platform Adapter (Slack/Discord/Telegram/WhatsApp/Feishu)
     ↓
 UniversalMessage (standardized format)
     ↓

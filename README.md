@@ -140,7 +140,7 @@ bot.start()
 ## 📖 Documentation
 
 - **[Quick Start](QUICKSTART.md)** - Get started in 5 minutes
-- **[Messenger Bot](packages/pig-messenger/README.md)** - Slack/Discord/Telegram bot setup
+- **[Messenger Bot](packages/pig-messenger/README.md)** - Slack/Discord/Telegram/WhatsApp/Feishu bot setup
 - **[Testing Guide](TESTING.md)** - How to run and write tests
 - **[Contributing](CONTRIBUTING.md)** - Contribution guidelines
 
@@ -160,10 +160,13 @@ pig-code --session my-project
 
 ### Team Collaboration
 ```python
-# Same bot across Slack, Discord, Telegram
+# Same bot across Slack, Discord, Telegram, WhatsApp, Feishu
 bot = MessengerBot(agent)
 bot.add_platform(SlackAdapter(...))
 bot.add_platform(DiscordAdapter(...))
+bot.add_platform(TelegramAdapter(...))
+bot.add_platform(WhatsAppAdapter(...))
+bot.add_platform(FeishuAdapter(...))
 bot.start()
 ```
 
