@@ -313,8 +313,14 @@ class ProfileManager:
         for i, profile in enumerate(self.profiles):
             if profile.api_key == api_key:
                 self.profiles.pop(i)
-                # Adjust current index if needed
-                if self._current_index >= len(self.profiles):
+                # If we removed an element before the current pointer, shift it down
+                # so the next call to get_next_profile continues from the right position
+                if i < self._current_index:
+                    self._current_index -= 1
+                # Clamp to valid range (handles removal at or after current pointer)
+                if self.profiles:
+                    self._current_index %= len(self.profiles)
+                else:
                     self._current_index = 0
                 return True
         return False

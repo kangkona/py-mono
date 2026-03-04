@@ -512,10 +512,12 @@ class ToolRegistry:
             True if tool can be executed in parallel with other tools
         """
         return name in PARALLEL_SAFE_TOOLS
+
+    def list_tools(self) -> list[str]:
         """List all registered tool names.
 
         Returns:
-            List of tool names
+            List of tool names in sorted order
         """
         with self._lock:
             return sorted(self._handlers.keys())

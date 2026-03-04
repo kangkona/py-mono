@@ -16,7 +16,8 @@ def test_core_tool_names():
     assert "think" in CORE_TOOL_NAMES
     assert "plan" in CORE_TOOL_NAMES
     assert "discover_tools" in CORE_TOOL_NAMES
-    assert len(CORE_TOOL_NAMES) == 3
+    assert "get_current_time" in CORE_TOOL_NAMES
+    assert len(CORE_TOOL_NAMES) == 4
 
 
 def test_tool_schemas_structure():
@@ -132,12 +133,12 @@ def test_get_core_schemas():
     """Test getting core tool schemas."""
     core_schemas = get_core_schemas()
 
-    # Should have exactly 3 core tools
-    assert len(core_schemas) == 3
+    # Should have exactly 4 core tools (think, plan, discover_tools, get_current_time)
+    assert len(core_schemas) == 4
 
     # Check names
     names = {s["function"]["name"] for s in core_schemas}
-    assert names == {"think", "plan", "discover_tools"}
+    assert names == {"think", "plan", "discover_tools", "get_current_time"}
 
     # Should not have internal fields
     for schema in core_schemas:

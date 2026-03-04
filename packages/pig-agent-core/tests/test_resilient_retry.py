@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from pig_agent_core.resilience.profile import APIProfile, ProfileManager
 from pig_agent_core.resilience.retry import (
+    ResilienceExhaustedError,
     _is_context_overflow,
     _is_error_type,
     _should_rotate_profile,
@@ -229,22 +230,23 @@ async def test_resilient_streaming_call_fallback_model():
 
 @pytest.mark.asyncio
 async def test_resilient_streaming_call_max_retries():
-    """Test max retries exhausted."""
-    # Mock LLM
+    """Test max retries exhausted raises ResilienceExhaustedError."""
     llm = Mock()
     llm.config = Mock(model="gpt-4")
 
-    # Mock stream that always fails
     async def mock_stream(*args, **kwargs):
+        # Yield makes this an async generator; raise happens on first iteration
         raise Exception("Permanent failure")
+        yield  # noqa: unreachable — required to make this an async generator
 
     llm.astream = mock_stream
 
-    # Call should raise after max retries
     messages = [{"role": "user", "content": "Hi"}]
-    with pytest.raises(Exception, match="Permanent failure"):
+    with pytest.raises(ResilienceExhaustedError) as exc_info:
         async for _chunk in resilient_streaming_call(llm, messages, max_retries=2):
             pass
+
+    assert "Permanent failure" in str(exc_info.value.original_error)
 
 
 @pytest.mark.asyncio
@@ -297,15 +299,14 @@ async def test_resilient_call_retry():
 
 @pytest.mark.asyncio
 async def test_resilient_call_max_retries():
-    """Test max retries exhausted."""
-    # Mock LLM
+    """Test max retries exhausted raises ResilienceExhaustedError."""
     llm = Mock()
     llm.config = Mock(model="gpt-4")
 
-    # Mock that always fails
     llm.achat = AsyncMock(side_effect=Exception("Permanent failure"))
 
-    # Call should raise after max retries
     messages = [{"role": "user", "content": "Hi"}]
-    with pytest.raises(Exception, match="Permanent failure"):
+    with pytest.raises(ResilienceExhaustedError) as exc_info:
         await resilient_call(llm, messages, max_retries=2)
+
+    assert "Permanent failure" in str(exc_info.value.original_error)

@@ -142,7 +142,8 @@ def test_build_messages_with_tool_messages():
     messages = build_messages(ctx, history, user_text)
 
     assert len(messages) == 6  # system + 4 history + 1 new
-    assert messages[2]["role"] == "tool"
+    # messages: [0]=system, [1]=user, [2]=assistant(tool_calls), [3]=tool, [4]=assistant, [5]=Thanks
+    assert messages[3]["role"] == "tool"
     assert messages[-1]["content"] == "Thanks"
 
 

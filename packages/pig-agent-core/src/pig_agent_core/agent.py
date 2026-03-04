@@ -550,10 +550,16 @@ class Agent:
             tools_schema = self.registry.get_schemas() if len(self.registry) > 0 else None
 
             # Call LLM with streaming
-            response_stream = self.llm.achat_stream(
+            # achat_stream may be an async generator function (returns generator directly)
+            # or an AsyncMock in tests (returns a coroutine that must be awaited first)
+            stream_call = self.llm.achat_stream(
                 messages=self.history,
                 tools=tools_schema,
             )
+            if asyncio.iscoroutine(stream_call):
+                response_stream = await stream_call
+            else:
+                response_stream = stream_call
 
             # Accumulate streaming response
             content_parts = []

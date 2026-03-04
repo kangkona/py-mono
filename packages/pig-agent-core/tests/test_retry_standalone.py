@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 
+import pytest
+
 # Add src to path
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
@@ -49,6 +51,7 @@ def test_is_context_overflow():
     print("✓ test_is_context_overflow passed")
 
 
+@pytest.mark.asyncio
 async def test_resilient_streaming_call_success():
     """Test successful streaming call."""
     llm = Mock()
@@ -70,6 +73,7 @@ async def test_resilient_streaming_call_success():
     print("✓ test_resilient_streaming_call_success passed")
 
 
+@pytest.mark.asyncio
 async def test_resilient_streaming_call_retry():
     """Test retry on transient error."""
     llm = Mock()
@@ -96,6 +100,7 @@ async def test_resilient_streaming_call_retry():
     print("✓ test_resilient_streaming_call_retry passed")
 
 
+@pytest.mark.asyncio
 async def test_resilient_streaming_call_context_compression():
     """Test context compression on overflow."""
     llm = Mock()
@@ -131,6 +136,7 @@ async def test_resilient_streaming_call_context_compression():
     print("✓ test_resilient_streaming_call_context_compression passed")
 
 
+@pytest.mark.asyncio
 async def test_resilient_call_success():
     """Test successful non-streaming call."""
     llm = Mock()
@@ -147,6 +153,7 @@ async def test_resilient_call_success():
     print("✓ test_resilient_call_success passed")
 
 
+@pytest.mark.asyncio
 async def test_resilient_call_retry():
     """Test retry on transient error."""
     llm = Mock()
