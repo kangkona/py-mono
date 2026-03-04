@@ -4,7 +4,7 @@ version = "0.0.1"
 description = "Tool extensions for pig-agent-core"
 authors = [{ name = "Pig Team" }]
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
     "pig-agent-core>=0.0.4",
 ]
