@@ -27,7 +27,7 @@ try:
         async def search(self, query: str, max_results: int = 5) -> list[SearchResult]:
             return [SearchResult(title="Test", url="https://example.com", snippet="Test content")]
 
-    async def test_handler():
+    async def _run():
         result = await handle_search_web(
             {"query": "Python tutorials", "max_results": 5},
             user_id="user123",
@@ -38,7 +38,7 @@ try:
         assert "Test" in result.data
         return True
 
-    success = asyncio.run(test_handler())
+    success = asyncio.run(_run())
     print("✓ Direct handler usage works")
 except Exception as e:
     print(f"✗ Direct handler usage failed: {e}")
@@ -129,7 +129,7 @@ try:
         except Exception as e:
             return ToolResult(ok=False, error=f"Tool execution failed: {str(e)}")
 
-    async def test_custom_handler():
+    async def _run():
         result = await handle_my_custom_tool({"param1": "test", "param2": 5})
         assert result.ok
         assert "Processed test with 5" in result.data
@@ -140,7 +140,7 @@ try:
 
         return True
 
-    asyncio.run(test_custom_handler())
+    asyncio.run(_run())
     print("✓ Custom tool handler works")
 except Exception as e:
     print(f"✗ Custom tool handler failed: {e}")
