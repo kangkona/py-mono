@@ -237,7 +237,7 @@ async def test_resilient_streaming_call_max_retries():
     async def mock_stream(*args, **kwargs):
         # Yield makes this an async generator; raise happens on first iteration
         raise Exception("Permanent failure")
-        yield  # noqa: unreachable — required to make this an async generator
+        yield  # unreachable — required to make this an async generator
 
     llm.astream = mock_stream
 

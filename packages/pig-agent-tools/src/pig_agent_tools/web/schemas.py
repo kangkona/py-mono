@@ -54,8 +54,7 @@ SEARCH_WEB_SCHEMA = _fn(
 READ_WEBPAGE_SCHEMA = _fn(
     name="read_webpage",
     description=(
-        "Read and extract text content from a webpage. "
-        "Returns the main text content of the page."
+        "Read and extract text content from a webpage. Returns the main text content of the page."
     ),
     parameters={
         "type": "object",
