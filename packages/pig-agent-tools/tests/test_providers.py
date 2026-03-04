@@ -1,11 +1,16 @@
-"""Unit tests for search provider implementations."""
+"""Unit tests for search and reader provider implementations."""
 
 import sys
 from types import ModuleType
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
-from pig_agent_tools.web.providers.base import SearchProvider, SearchResult
+from pig_agent_tools.web.providers.base import (
+    PageContent,
+    ReaderProvider,
+    SearchProvider,
+    SearchResult,
+)
 
 # ---------------------------------------------------------------------------
 # Protocol conformance
@@ -18,6 +23,12 @@ def test_search_result_defaults():
     assert r.extra == {}
 
 
+def test_page_content_defaults():
+    p = PageContent(url="http://x.com", content="hello")
+    assert p.title == ""
+    assert p.format == "text"
+
+
 def test_search_provider_is_protocol():
     """Any object with a matching search() is a valid SearchProvider."""
 
@@ -26,6 +37,16 @@ def test_search_provider_is_protocol():
             return []
 
     assert isinstance(MyProvider(), SearchProvider)
+
+
+def test_reader_provider_is_protocol():
+    """Any object with a matching read() is a valid ReaderProvider."""
+
+    class MyReader:
+        async def read(self, url: str) -> PageContent:
+            return PageContent(url=url, content="")
+
+    assert isinstance(MyReader(), ReaderProvider)
 
 
 # ---------------------------------------------------------------------------
@@ -220,3 +241,225 @@ def test_get_default_provider_no_key(monkeypatch):
     monkeypatch.delenv("EXA_API_KEY", raising=False)
     with pytest.raises(RuntimeError, match="No search provider configured"):
         get_default_provider()
+
+
+# ---------------------------------------------------------------------------
+# JinaReaderProvider
+# ---------------------------------------------------------------------------
+
+
+def _make_jina_httpx_mock(json_response: dict | None = None, text: str = ""):
+    """Return a patched httpx.AsyncClient for Jina tests."""
+    mock_response = Mock()
+    mock_response.raise_for_status = Mock()
+    if json_response is not None:
+        mock_response.json.return_value = json_response
+        mock_response.text = text
+    else:
+        mock_response.json.side_effect = ValueError("not json")
+        mock_response.text = text
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get.return_value = mock_response
+    return mock_client
+
+
+@pytest.mark.asyncio
+async def test_jina_reader_success_json():
+    from pig_agent_tools.web.providers.jina import JinaReaderProvider
+
+    jina_json = {"data": {"title": "My Page", "content": "# Hello\nWorld"}}
+
+    with patch("httpx.AsyncClient", return_value=_make_jina_httpx_mock(json_response=jina_json)):
+        provider = JinaReaderProvider(api_key="test-key")
+        page = await provider.read("https://example.com")
+
+    assert page.content == "# Hello\nWorld"
+    assert page.title == "My Page"
+    assert page.format == "markdown"
+    assert page.url == "https://example.com"
+
+
+@pytest.mark.asyncio
+async def test_jina_reader_success_text_fallback():
+    """Falls back to response.text when JSON parsing fails."""
+    from pig_agent_tools.web.providers.jina import JinaReaderProvider
+
+    raw_text = "Plain text content from Jina"
+
+    with patch("httpx.AsyncClient", return_value=_make_jina_httpx_mock(text=raw_text)):
+        provider = JinaReaderProvider()
+        page = await provider.read("https://example.com")
+
+    assert page.content == raw_text
+
+
+@pytest.mark.asyncio
+async def test_jina_reader_with_api_key_sets_auth_header():
+    """API key is sent as Authorization header."""
+    from pig_agent_tools.web.providers.jina import JinaReaderProvider
+
+    jina_json = {"data": {"title": "", "content": "content"}}
+    mock_client = _make_jina_httpx_mock(json_response=jina_json)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        provider = JinaReaderProvider(api_key="my-jina-key")
+        await provider.read("https://example.com")
+
+    _, call_kwargs = mock_client.get.call_args
+    assert call_kwargs["headers"]["Authorization"] == "Bearer my-jina-key"
+
+
+@pytest.mark.asyncio
+async def test_jina_reader_http_error():
+    import httpx
+    from pig_agent_tools.web.providers.jina import JinaReaderProvider
+
+    mock_response = Mock()
+    mock_response.status_code = 429
+    mock_response.reason_phrase = "Too Many Requests"
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get.side_effect = httpx.HTTPStatusError(
+        "429", request=Mock(), response=mock_response
+    )
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        provider = JinaReaderProvider()
+        with pytest.raises(RuntimeError, match="429"):
+            await provider.read("https://example.com")
+
+
+@pytest.mark.asyncio
+async def test_jina_reader_timeout():
+    import httpx
+    from pig_agent_tools.web.providers.jina import JinaReaderProvider
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get.side_effect = httpx.TimeoutException("Timeout")
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        provider = JinaReaderProvider()
+        with pytest.raises(RuntimeError, match="timed out"):
+            await provider.read("https://example.com")
+
+
+@pytest.mark.asyncio
+async def test_jina_reader_content_truncation():
+    from pig_agent_tools.web.providers.jina import JinaReaderProvider
+
+    long_text = "A" * 15000
+    jina_json = {"data": {"title": "", "content": long_text}}
+
+    with patch("httpx.AsyncClient", return_value=_make_jina_httpx_mock(json_response=jina_json)):
+        provider = JinaReaderProvider(max_content=10000)
+        page = await provider.read("https://example.com")
+
+    assert "[Content truncated...]" in page.content
+    assert len(page.content) <= 10030
+
+
+# ---------------------------------------------------------------------------
+# HttpxBs4Provider
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_httpx_bs4_success():
+    from pig_agent_tools.web.providers.httpx_bs4 import HttpxBs4Provider
+
+    mock_html = """
+    <html>
+        <head><title>Test Page</title></head>
+        <body>
+            <nav>Navigation</nav>
+            <h1>Main Title</h1>
+            <p>This is the main content.</p>
+            <script>alert('x')</script>
+            <footer>Footer</footer>
+        </body>
+    </html>
+    """
+    mock_response = Mock()
+    mock_response.text = mock_html
+    mock_response.raise_for_status = Mock()
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get.return_value = mock_response
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        provider = HttpxBs4Provider()
+        page = await provider.read("https://example.com")
+
+    assert page.title == "Test Page"
+    assert "Main Title" in page.content
+    assert "main content" in page.content
+    assert "Navigation" not in page.content
+    assert "Footer" not in page.content
+    assert "alert" not in page.content
+    assert page.format == "text"
+
+
+@pytest.mark.asyncio
+async def test_httpx_bs4_http_error():
+    import httpx
+    from pig_agent_tools.web.providers.httpx_bs4 import HttpxBs4Provider
+
+    mock_response = Mock()
+    mock_response.status_code = 404
+    mock_response.reason_phrase = "Not Found"
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get.side_effect = httpx.HTTPStatusError(
+        "404", request=Mock(), response=mock_response
+    )
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        provider = HttpxBs4Provider()
+        with pytest.raises(RuntimeError, match="404"):
+            await provider.read("https://example.com")
+
+
+@pytest.mark.asyncio
+async def test_httpx_bs4_content_truncation():
+    from pig_agent_tools.web.providers.httpx_bs4 import HttpxBs4Provider
+
+    long_text = "B" * 15000
+    mock_html = f"<html><body><p>{long_text}</p></body></html>"
+    mock_response = Mock()
+    mock_response.text = mock_html
+    mock_response.raise_for_status = Mock()
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get.return_value = mock_response
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        provider = HttpxBs4Provider(max_content=10000)
+        page = await provider.read("https://example.com")
+
+    assert "[Content truncated...]" in page.content
+    assert len(page.content) <= 10030
+
+
+# ---------------------------------------------------------------------------
+# get_default_reader
+# ---------------------------------------------------------------------------
+
+
+def test_get_default_reader_returns_jina():
+    from pig_agent_tools.web.providers import JinaReaderProvider, get_default_reader
+
+    reader = get_default_reader()
+    assert isinstance(reader, JinaReaderProvider)

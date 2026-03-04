@@ -3,10 +3,15 @@
 from .handlers import HANDLERS, handle_read_webpage, handle_search_web
 from .providers import (
     ExaProvider,
+    HttpxBs4Provider,
+    JinaReaderProvider,
+    PageContent,
+    ReaderProvider,
     SearchProvider,
     SearchResult,
     TavilyProvider,
     get_default_provider,
+    get_default_reader,
 )
 from .schemas import TOOL_SCHEMAS
 
@@ -62,14 +67,22 @@ def register_tools(registry=None):
 
 
 __all__ = [
+    # Handlers
     "handle_search_web",
     "handle_read_webpage",
     "HANDLERS",
     "TOOL_SCHEMAS",
     "register_tools",
+    # Search
     "SearchProvider",
     "SearchResult",
     "TavilyProvider",
     "ExaProvider",
     "get_default_provider",
+    # Reader
+    "ReaderProvider",
+    "PageContent",
+    "JinaReaderProvider",
+    "HttpxBs4Provider",
+    "get_default_reader",
 ]

@@ -1,7 +1,9 @@
-"""Search provider implementations."""
+"""Web tool provider implementations."""
 
-from .base import SearchProvider, SearchResult
+from .base import PageContent, ReaderProvider, SearchProvider, SearchResult
 from .exa import ExaProvider
+from .httpx_bs4 import HttpxBs4Provider
+from .jina import JinaReaderProvider
 from .tavily import TavilyProvider
 
 
@@ -26,10 +28,28 @@ def get_default_provider() -> "SearchProvider":
     )
 
 
+def get_default_reader() -> "ReaderProvider":
+    """Return the default reader provider (JinaReaderProvider).
+
+    JinaReaderProvider is always available — no API key required for the
+    free tier.  Set JINA_API_KEY to increase rate limits.
+    """
+    return JinaReaderProvider()
+
+
 __all__ = [
+    # Protocols & data types
     "SearchProvider",
     "SearchResult",
+    "ReaderProvider",
+    "PageContent",
+    # Search providers
     "TavilyProvider",
     "ExaProvider",
+    # Reader providers
+    "JinaReaderProvider",
+    "HttpxBs4Provider",
+    # Factory helpers
     "get_default_provider",
+    "get_default_reader",
 ]

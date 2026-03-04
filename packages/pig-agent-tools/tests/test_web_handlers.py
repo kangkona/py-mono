@@ -1,6 +1,6 @@
 """Tests for web tool handlers."""
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import patch
 
 import pytest
 from pig_agent_tools.web.handlers import handle_read_webpage, handle_search_web
@@ -111,45 +111,40 @@ async def test_search_web_auto_detects_provider_no_key():
 
 
 # ---------------------------------------------------------------------------
-# handle_read_webpage
+# handle_read_webpage — uses injected ReaderProvider for full isolation
 # ---------------------------------------------------------------------------
+
+
+def _make_reader(content: str, title: str = ""):
+    """Return a mock ReaderProvider that yields the given content."""
+    from pig_agent_tools.web.providers.base import PageContent
+
+    class _Reader:
+        async def read(self, url: str) -> PageContent:
+            return PageContent(url=url, content=content, title=title)
+
+    return _Reader()
+
+
+def _failing_reader(message: str):
+    """Return a mock ReaderProvider that raises RuntimeError."""
+
+    class _Reader:
+        async def read(self, url: str):
+            raise RuntimeError(message)
+
+    return _Reader()
 
 
 @pytest.mark.asyncio
 async def test_read_webpage_success():
-    """Successful page read strips scripts/nav/footer."""
-    mock_html = """
-    <html>
-        <head><title>Test Page</title></head>
-        <body>
-            <nav>Navigation</nav>
-            <h1>Main Title</h1>
-            <p>This is the main content.</p>
-            <script>console.log('test');</script>
-            <footer>Footer content</footer>
-        </body>
-    </html>
-    """
-
-    mock_response = Mock()
-    mock_response.text = mock_html
-    mock_response.raise_for_status = Mock()
-
-    with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = AsyncMock()
-        mock_client.__aenter__.return_value = mock_client
-        mock_client.__aexit__.return_value = None
-        mock_client.get.return_value = mock_response
-        mock_client_class.return_value = mock_client
-
-        result = await handle_read_webpage({"url": "https://example.com"})
+    """Successful page read returns content from provider."""
+    reader = _make_reader("Main Title\nThis is the main content.", title="Test Page")
+    result = await handle_read_webpage({"url": "https://example.com"}, reader=reader)
 
     assert result.ok
     assert "Main Title" in result.data
     assert "main content" in result.data
-    assert "Navigation" not in result.data
-    assert "Footer content" not in result.data
-    assert "console.log" not in result.data
 
 
 @pytest.mark.asyncio
@@ -167,40 +162,19 @@ async def test_read_webpage_invalid_url():
 
 
 @pytest.mark.asyncio
-async def test_read_webpage_http_error():
-    import httpx
-
-    mock_response = Mock()
-    mock_response.status_code = 404
-    mock_response.reason_phrase = "Not Found"
-
-    with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = AsyncMock()
-        mock_client.__aenter__.return_value = mock_client
-        mock_client.__aexit__.return_value = None
-        mock_client.get.side_effect = httpx.HTTPStatusError(
-            "404", request=Mock(), response=mock_response
-        )
-        mock_client_class.return_value = mock_client
-
-        result = await handle_read_webpage({"url": "https://example.com/notfound"})
+async def test_read_webpage_provider_error():
+    """RuntimeError from provider surfaces as ToolResult error."""
+    reader = _failing_reader("HTTP error 404: Not Found")
+    result = await handle_read_webpage({"url": "https://example.com/notfound"}, reader=reader)
 
     assert not result.ok
     assert "404" in result.error
 
 
 @pytest.mark.asyncio
-async def test_read_webpage_timeout():
-    import httpx
-
-    with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = AsyncMock()
-        mock_client.__aenter__.return_value = mock_client
-        mock_client.__aexit__.return_value = None
-        mock_client.get.side_effect = httpx.TimeoutException("Timeout")
-        mock_client_class.return_value = mock_client
-
-        result = await handle_read_webpage({"url": "https://example.com"})
+async def test_read_webpage_timeout_error():
+    reader = _failing_reader("Request timed out after 30 seconds")
+    result = await handle_read_webpage({"url": "https://example.com"}, reader=reader)
 
     assert not result.ok
     assert "timed out" in result.error
@@ -208,22 +182,10 @@ async def test_read_webpage_timeout():
 
 @pytest.mark.asyncio
 async def test_read_webpage_content_truncation():
-    long_content = "A" * 15000
-    mock_html = f"<html><body><p>{long_content}</p></body></html>"
-
-    mock_response = Mock()
-    mock_response.text = mock_html
-    mock_response.raise_for_status = Mock()
-
-    with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = AsyncMock()
-        mock_client.__aenter__.return_value = mock_client
-        mock_client.__aexit__.return_value = None
-        mock_client.get.return_value = mock_response
-        mock_client_class.return_value = mock_client
-
-        result = await handle_read_webpage({"url": "https://example.com"})
+    """Content truncation is handled inside the provider; handler passes through."""
+    long_content = "A" * 9500 + "\n\n[Content truncated...]"
+    reader = _make_reader(long_content)
+    result = await handle_read_webpage({"url": "https://example.com"}, reader=reader)
 
     assert result.ok
     assert "[Content truncated...]" in result.data
-    assert len(result.data) <= 10050

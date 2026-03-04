@@ -4,7 +4,7 @@ from typing import Any
 
 from pig_agent_core.tools.base import ToolResult
 
-from .providers.base import SearchProvider
+from .providers.base import ReaderProvider, SearchProvider
 
 
 async def handle_search_web(
@@ -65,14 +65,23 @@ async def handle_read_webpage(
     user_id: str | None = None,
     meta: dict[str, Any] | None = None,
     cancel: Any = None,
+    reader: ReaderProvider | None = None,
 ) -> ToolResult:
-    """Read and extract text content from a webpage.
+    """Fetch a webpage and return its text content.
+
+    The ``reader`` argument selects the extraction backend:
+
+    - ``JinaReaderProvider`` (default) — routes through Jina Reader API,
+      returns clean Markdown, handles JS-rendered pages, free without a key.
+    - ``HttpxBs4Provider`` — fetches raw HTML locally, strips boilerplate
+      with BeautifulSoup.  No external API, but cannot run JS.
 
     Args:
         args: Tool arguments — ``url`` (required).
         user_id: Optional user identifier passed by the agent runtime.
         meta: Optional metadata passed by the agent runtime.
         cancel: Optional cancellation token passed by the agent runtime.
+        reader: Explicit reader provider instance.
 
     Returns:
         ToolResult with extracted page text on success.
@@ -86,47 +95,16 @@ async def handle_read_webpage(
         return ToolResult(ok=False, error="URL must start with http:// or https://")
 
     try:
-        try:
-            import httpx
-            from bs4 import BeautifulSoup
-        except ImportError:
-            return ToolResult(
-                ok=False,
-                error=(
-                    "Required packages not installed. "
-                    "Install with: pip install httpx beautifulsoup4"
-                ),
-            )
+        if reader is None:
+            from .providers.jina import JinaReaderProvider
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(url, follow_redirects=True)
-            response.raise_for_status()
+            reader = JinaReaderProvider()
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        page = await reader.read(url)
+        return ToolResult(ok=True, data=page.content)
 
-        for tag in soup(["script", "style", "nav", "footer", "header"]):
-            tag.decompose()
-
-        text = soup.get_text(separator="\n", strip=True)
-        lines = [line.strip() for line in text.splitlines() if line.strip()]
-        content = "\n".join(lines)
-
-        if not content:
-            return ToolResult(ok=False, error="No text content found on webpage")
-
-        max_length = 10000
-        if len(content) > max_length:
-            content = content[:max_length] + "\n\n[Content truncated...]"
-
-        return ToolResult(ok=True, data=content)
-
-    except httpx.HTTPStatusError as e:
-        return ToolResult(
-            ok=False,
-            error=f"HTTP error {e.response.status_code}: {e.response.reason_phrase}",
-        )
-    except httpx.TimeoutException:
-        return ToolResult(ok=False, error="Request timed out after 30 seconds")
+    except RuntimeError as e:
+        return ToolResult(ok=False, error=str(e))
     except Exception as e:
         return ToolResult(ok=False, error=f"Failed to read webpage: {e}")
 
