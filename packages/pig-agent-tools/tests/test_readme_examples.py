@@ -1,6 +1,8 @@
 """Verify pig-agent-tools README examples are accurate."""
 
 import asyncio
+import sys
+from types import ModuleType
 from unittest.mock import Mock, patch
 
 print("Testing pig-agent-tools README examples...\n")
@@ -23,16 +25,18 @@ print("\nTest 2: Direct handler usage...")
 try:
     from pig_agent_tools.web import handle_search_web
 
-    # Mock Tavily API
     mock_response = {
         "results": [{"title": "Test", "url": "https://example.com", "content": "Test content"}]
     }
 
     async def test_handler():
-        with patch("tavily.TavilyClient") as mock_client_class:
+        fake_tavily = ModuleType("tavily")
+        fake_tavily.TavilyClient = Mock()
+        sys.modules["tavily"] = fake_tavily
+        try:
             mock_client = Mock()
             mock_client.search.return_value = mock_response
-            mock_client_class.return_value = mock_client
+            fake_tavily.TavilyClient.return_value = mock_client
 
             with patch.dict("os.environ", {"TAVILY_API_KEY": "test-key"}):
                 result = await handle_search_web(
@@ -43,6 +47,8 @@ try:
                 assert result.ok, f"Expected ok=True, got {result.ok}"
                 assert "Test" in result.data
                 return True
+        finally:
+            sys.modules.pop("tavily", None)
 
     success = asyncio.run(test_handler())
     print("✓ Direct handler usage works")
@@ -136,12 +142,10 @@ try:
             return ToolResult(ok=False, error=f"Tool execution failed: {str(e)}")
 
     async def test_custom_handler():
-        # Test success case
         result = await handle_my_custom_tool({"param1": "test", "param2": 5})
         assert result.ok
         assert "Processed test with 5" in result.data
 
-        # Test error case
         result = await handle_my_custom_tool({})
         assert not result.ok
         assert "param1 is required" in result.error
@@ -158,12 +162,10 @@ print("\nTest 6: ToolResult error handling...")
 try:
     from pig_agent_core.tools.base import ToolResult
 
-    # Success case
     result = ToolResult(ok=True, data="success")
     assert result.ok
     assert result.data == "success"
 
-    # Error case
     result = ToolResult(ok=False, error="something went wrong")
     assert not result.ok
     assert result.error == "something went wrong"

@@ -1,9 +1,19 @@
 """Tests for web tool handlers."""
 
+import sys
+from types import ModuleType
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from pig_agent_tools.web.handlers import handle_read_webpage, handle_search_web
+
+
+def _install_fake_tavily():
+    """Inject a fake tavily module into sys.modules so patch() can target it."""
+    fake_tavily = ModuleType("tavily")
+    fake_tavily.TavilyClient = Mock()
+    sys.modules["tavily"] = fake_tavily
+    return fake_tavily
 
 
 @pytest.mark.asyncio
@@ -24,18 +34,21 @@ async def test_search_web_success():
         ]
     }
 
-    with patch("tavily.TavilyClient") as mock_client_class:
+    fake_tavily = _install_fake_tavily()
+    try:
         mock_client = Mock()
         mock_client.search.return_value = mock_response
-        mock_client_class.return_value = mock_client
+        fake_tavily.TavilyClient.return_value = mock_client
 
         with patch.dict("os.environ", {"TAVILY_API_KEY": "test-key"}):
             result = await handle_search_web({"query": "Python tutorials", "max_results": 2})
 
-    assert result.ok
-    assert "Python Tutorial" in result.data
-    assert "https://example.com/python" in result.data
-    assert "Learn Python programming" in result.data
+        assert result.ok
+        assert "Python Tutorial" in result.data
+        assert "https://example.com/python" in result.data
+        assert "Learn Python programming" in result.data
+    finally:
+        sys.modules.pop("tavily", None)
 
 
 @pytest.mark.asyncio
@@ -49,12 +62,27 @@ async def test_search_web_missing_query():
 
 @pytest.mark.asyncio
 async def test_search_web_no_api_key():
-    """Test search without API key."""
+    """Test search without API key — when tavily is not installed, expect import error."""
+    sys.modules.pop("tavily", None)
     with patch.dict("os.environ", {}, clear=True):
         result = await handle_search_web({"query": "test"})
 
     assert not result.ok
-    assert "TAVILY_API_KEY" in result.error
+    assert "TAVILY_API_KEY" in result.error or "Tavily" in result.error
+
+
+@pytest.mark.asyncio
+async def test_search_web_no_api_key_with_tavily():
+    """Test search without API key when tavily is installed."""
+    _install_fake_tavily()
+    try:
+        with patch.dict("os.environ", {}, clear=True):
+            result = await handle_search_web({"query": "test"})
+
+        assert not result.ok
+        assert "TAVILY_API_KEY" in result.error
+    finally:
+        sys.modules.pop("tavily", None)
 
 
 @pytest.mark.asyncio
@@ -62,31 +90,37 @@ async def test_search_web_no_results():
     """Test search with no results."""
     mock_response = {"results": []}
 
-    with patch("tavily.TavilyClient") as mock_client_class:
+    fake_tavily = _install_fake_tavily()
+    try:
         mock_client = Mock()
         mock_client.search.return_value = mock_response
-        mock_client_class.return_value = mock_client
+        fake_tavily.TavilyClient.return_value = mock_client
 
         with patch.dict("os.environ", {"TAVILY_API_KEY": "test-key"}):
             result = await handle_search_web({"query": "nonexistent query"})
 
-    assert result.ok
-    assert "No results found" in result.data
+        assert result.ok
+        assert "No results found" in result.data
+    finally:
+        sys.modules.pop("tavily", None)
 
 
 @pytest.mark.asyncio
 async def test_search_web_exception():
     """Test search with exception."""
-    with patch("tavily.TavilyClient") as mock_client_class:
+    fake_tavily = _install_fake_tavily()
+    try:
         mock_client = Mock()
         mock_client.search.side_effect = Exception("API error")
-        mock_client_class.return_value = mock_client
+        fake_tavily.TavilyClient.return_value = mock_client
 
         with patch.dict("os.environ", {"TAVILY_API_KEY": "test-key"}):
             result = await handle_search_web({"query": "test"})
 
-    assert not result.ok
-    assert "Search failed" in result.error
+        assert not result.ok
+        assert "Search failed" in result.error
+    finally:
+        sys.modules.pop("tavily", None)
 
 
 @pytest.mark.asyncio
@@ -121,9 +155,9 @@ async def test_read_webpage_success():
     assert result.ok
     assert "Main Title" in result.data
     assert "main content" in result.data
-    assert "Navigation" not in result.data  # nav should be removed
-    assert "Footer content" not in result.data  # footer should be removed
-    assert "console.log" not in result.data  # script should be removed
+    assert "Navigation" not in result.data
+    assert "Footer content" not in result.data
+    assert "console.log" not in result.data
 
 
 @pytest.mark.asyncio
@@ -189,7 +223,7 @@ async def test_read_webpage_timeout():
 @pytest.mark.asyncio
 async def test_read_webpage_content_truncation():
     """Test webpage content truncation for long content."""
-    long_content = "A" * 15000  # Exceeds 10000 char limit
+    long_content = "A" * 15000
     mock_html = f"<html><body><p>{long_content}</p></body></html>"
 
     mock_response = Mock()
@@ -207,4 +241,4 @@ async def test_read_webpage_content_truncation():
 
     assert result.ok
     assert "[Content truncated...]" in result.data
-    assert len(result.data) <= 10050  # 10000 + truncation message
+    assert len(result.data) <= 10050
