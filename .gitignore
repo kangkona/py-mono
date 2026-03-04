@@ -56,3 +56,10 @@ dmypy.json
 *.log
 .env
 .env.local
+
+# Claude Code
+.claude/
+
+# Session data
+.sessions/
+.messenger/.sessions/
