@@ -1,10 +1,21 @@
-"""Platform adapter base class."""
+"""Platform adapter base class.
 
+DEPRECATED: This module is kept for backward compatibility.
+Use pig_messenger.base.BaseMessengerAdapter instead.
+"""
+
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from pathlib import Path
 
 from .message import Attachment, UniversalMessage
+
+warnings.warn(
+    "pig_messenger.platform is deprecated. Use pig_messenger.base instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class MessagePlatform(ABC):
