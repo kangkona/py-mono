@@ -8,6 +8,7 @@ import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from .message import Attachment, UniversalMessage
 
@@ -36,7 +37,7 @@ class MessagePlatform(ABC):
         channel_id: str,
         text: str,
         thread_id: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> str:
         """Send a message to a channel.
 
@@ -114,7 +115,7 @@ class MessagePlatform(ABC):
         self,
         channel_id: str,
         text: str,
-        **kwargs,
+        **kwargs: Any,
     ) -> str:
         """Send an interactive card message.
 
@@ -135,7 +136,7 @@ class MessagePlatform(ABC):
         self,
         message_id: str,
         text: str,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Update an existing card message.
 

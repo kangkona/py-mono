@@ -158,7 +158,7 @@ class MessengerThread:
         self.thread_id = thread_id
         self.capabilities = capabilities or MessengerCapabilities()
 
-    async def post(self, text: str, **kwargs) -> str:
+    async def post(self, text: str, **kwargs: Any) -> str:
         """Post a message.
 
         Args:
@@ -172,7 +172,7 @@ class MessengerThread:
             self.channel_id, text, thread_id=self.thread_id, **kwargs
         )
 
-    async def update(self, message_id: str, text: str, **kwargs) -> None:
+    async def update(self, message_id: str, text: str, **kwargs: Any) -> None:
         """Update an existing message.
 
         Args:
@@ -182,7 +182,7 @@ class MessengerThread:
         """
         await self.adapter.update_message(self.channel_id, message_id, text, **kwargs)
 
-    async def delete(self, message_id: str, **kwargs) -> None:
+    async def delete(self, message_id: str, **kwargs: Any) -> None:
         """Delete a message.
 
         Args:
@@ -191,7 +191,7 @@ class MessengerThread:
         """
         await self.adapter.delete_message(self.channel_id, message_id, **kwargs)
 
-    async def react(self, message_id: str, emoji: str, **kwargs) -> None:
+    async def react(self, message_id: str, emoji: str, **kwargs: Any) -> None:
         """React to a message.
 
         Args:
@@ -201,7 +201,7 @@ class MessengerThread:
         """
         await self.adapter.send_reaction(self.channel_id, message_id, emoji, **kwargs)
 
-    async def typing(self, **kwargs) -> None:
+    async def typing(self, **kwargs: Any) -> None:
         """Send typing indicator.
 
         Args:
@@ -209,7 +209,7 @@ class MessengerThread:
         """
         await self.adapter.send_typing(self.channel_id, **kwargs)
 
-    async def post_file(self, url: str, filename: str, **kwargs) -> str:
+    async def post_file(self, url: str, filename: str, **kwargs: Any) -> str:
         """Post a file from URL.
 
         Args:
@@ -223,7 +223,7 @@ class MessengerThread:
         return await self.adapter.send_file(self.channel_id, url, filename, **kwargs)
 
     async def post_file_content(
-        self, content: bytes, filename: str, content_type: str, **kwargs
+        self, content: bytes, filename: str, content_type: str, **kwargs: Any
     ) -> str:
         """Post file content.
 
@@ -240,7 +240,7 @@ class MessengerThread:
             self.channel_id, content, filename, content_type, **kwargs
         )
 
-    async def post_blocks(self, blocks: list[dict], text_fallback: str = "", **kwargs) -> str:
+    async def post_blocks(self, blocks: list[dict], text_fallback: str = "", **kwargs: Any) -> str:
         """Post structured blocks.
 
         Args:
@@ -259,7 +259,7 @@ class MessengerThread:
         self,
         async_chunks: AsyncIterator[str],
         interval: float = 0.5,
-        **kwargs,
+        **kwargs: Any,
     ) -> list[str]:
         """Stream message chunks with auto-selected strategy.
 
@@ -283,7 +283,7 @@ class MessengerThread:
         else:
             return await self._stream_batch(async_chunks, **kwargs)
 
-    async def _stream_draft(self, async_chunks: AsyncIterator[str], **kwargs) -> list[str]:
+    async def _stream_draft(self, async_chunks: AsyncIterator[str], **kwargs: Any) -> list[str]:
         """Draft streaming strategy - push native draft frames, commit final.
 
         Args:
@@ -309,7 +309,7 @@ class MessengerThread:
         return []
 
     async def _stream_edit(
-        self, async_chunks: AsyncIterator[str], interval: float, **kwargs
+        self, async_chunks: AsyncIterator[str], interval: float, **kwargs: Any
     ) -> list[str]:
         """Edit streaming strategy - post initial, edit at intervals, auto-split on overflow.
 
@@ -369,7 +369,7 @@ class MessengerThread:
 
         return message_ids
 
-    async def _stream_batch(self, async_chunks: AsyncIterator[str], **kwargs) -> list[str]:
+    async def _stream_batch(self, async_chunks: AsyncIterator[str], **kwargs: Any) -> list[str]:
         """Batch fallback strategy - collect all chunks, split, post sequentially.
 
         Args:
@@ -413,7 +413,7 @@ class BaseMessengerAdapter(ABC):
 
     @abstractmethod
     async def send_message(
-        self, channel_id: str, text: str, *, thread_id: str | None = None, **kwargs
+        self, channel_id: str, text: str, *, thread_id: str | None = None, **kwargs: Any
     ) -> str:
         """Send a message.
 
@@ -429,7 +429,9 @@ class BaseMessengerAdapter(ABC):
         pass
 
     @abstractmethod
-    async def update_message(self, channel_id: str, message_id: str, text: str, **kwargs) -> None:
+    async def update_message(
+        self, channel_id: str, message_id: str, text: str, **kwargs: Any
+    ) -> None:
         """Update an existing message.
 
         Args:
@@ -453,7 +455,7 @@ class BaseMessengerAdapter(ABC):
         pass
 
     @abstractmethod
-    def verify_signature(self, request_body: bytes, signature: str, **kwargs) -> bool:
+    def verify_signature(self, request_body: bytes, signature: str, **kwargs: Any) -> bool:
         """Verify webhook signature.
 
         Args:
@@ -468,7 +470,7 @@ class BaseMessengerAdapter(ABC):
 
     # Virtual methods (can be overridden)
 
-    async def delete_message(self, channel_id: str, message_id: str, **kwargs) -> None:
+    async def delete_message(self, channel_id: str, message_id: str, **kwargs: Any) -> None:
         """Delete a message.
 
         Args:
@@ -478,7 +480,7 @@ class BaseMessengerAdapter(ABC):
         """
         logger.warning(f"{self.__class__.__name__} does not support delete_message")
 
-    async def send_typing(self, channel_id: str, **kwargs) -> None:  # noqa: B027
+    async def send_typing(self, channel_id: str, **kwargs: Any) -> None:  # noqa: B027
         """Send typing indicator.
 
         Args:
@@ -488,7 +490,7 @@ class BaseMessengerAdapter(ABC):
         pass  # Optional, no-op by default
 
     async def send_draft(
-        self, channel_id: str, text: str, *, draft_id: str | None = None, **kwargs
+        self, channel_id: str, text: str, *, draft_id: str | None = None, **kwargs: Any
     ) -> str:
         """Send draft message (for draft streaming).
 
@@ -504,7 +506,9 @@ class BaseMessengerAdapter(ABC):
         logger.warning(f"{self.__class__.__name__} does not support send_draft")
         return draft_id or "unsupported"
 
-    async def send_reaction(self, channel_id: str, message_id: str, emoji: str, **kwargs) -> None:
+    async def send_reaction(
+        self, channel_id: str, message_id: str, emoji: str, **kwargs: Any
+    ) -> None:
         """React to a message.
 
         Args:
@@ -515,7 +519,7 @@ class BaseMessengerAdapter(ABC):
         """
         logger.warning(f"{self.__class__.__name__} does not support send_reaction")
 
-    async def send_file(self, channel_id: str, url: str, filename: str, **kwargs) -> str:
+    async def send_file(self, channel_id: str, url: str, filename: str, **kwargs: Any) -> str:
         """Send a file from URL.
 
         Args:
@@ -536,7 +540,7 @@ class BaseMessengerAdapter(ABC):
         content: bytes,
         filename: str,
         content_type: str,
-        **kwargs,
+        **kwargs: Any,
     ) -> str:
         """Send file content.
 
@@ -560,7 +564,7 @@ class BaseMessengerAdapter(ABC):
         *,
         text_fallback: str = "",
         thread_id: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> str:
         """Send structured blocks.
 
@@ -577,7 +581,7 @@ class BaseMessengerAdapter(ABC):
         # Default: fall back to text
         return await self.send_message(channel_id, text_fallback, thread_id=thread_id, **kwargs)
 
-    async def open_dm(self, user_id: str, **kwargs) -> str:
+    async def open_dm(self, user_id: str, **kwargs: Any) -> str:
         """Open a DM channel with a user.
 
         Args:
@@ -590,7 +594,7 @@ class BaseMessengerAdapter(ABC):
         logger.warning(f"{self.__class__.__name__} does not support open_dm")
         return ""
 
-    async def get_user_tz(self, user_id: str, **kwargs) -> str:
+    async def get_user_tz(self, user_id: str, **kwargs: Any) -> str:
         """Get user's timezone.
 
         Args:

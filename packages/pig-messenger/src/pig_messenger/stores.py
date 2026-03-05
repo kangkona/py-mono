@@ -6,9 +6,9 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 try:
-    from cryptography.fernet import Fernet
+    from cryptography.fernet import Fernet  # type: ignore[import-not-found]
 except ImportError:
-    Fernet = None  # type: ignore
+    Fernet = None  # type: ignore[assignment]
 
 
 class WorkspaceAlreadyClaimedError(Exception):
@@ -128,7 +128,7 @@ class ConnectionStore(ABC):
 class _TTLCache:
     """Simple in-memory TTL cache."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize cache."""
         self._data: dict[str, tuple[Any, float]] = {}
 
