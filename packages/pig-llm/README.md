@@ -1,5 +1,8 @@
 # pig-llm
 
+[![PyPI version](https://badge.fury.io/py/pig-llm.svg)](https://badge.fury.io/py/pig-llm)
+[![Python](https://img.shields.io/pypi/pyversions/pig-llm.svg)](https://pypi.org/project/pig-llm/)
+
 Unified multi-provider LLM API for Python.
 
 ## Features

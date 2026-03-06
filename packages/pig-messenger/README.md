@@ -1,5 +1,8 @@
 # pig-messenger
 
+[![PyPI version](https://badge.fury.io/py/pig-messenger.svg)](https://badge.fury.io/py/pig-messenger)
+[![Python](https://img.shields.io/pypi/pyversions/pig-messenger.svg)](https://pypi.org/project/pig-messenger/)
+
 Universal messenger abstraction library for building multi-platform bots with production-grade features.
 
 English | [简体中文](./README.zh-CN.md)
