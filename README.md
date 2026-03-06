@@ -28,7 +28,7 @@ Build AI agents and LLM applications with a powerful, modular Python toolkit. pi
 | **[pig-tui](packages/pig-tui)** | v0.0.1 | Terminal UI with rich formatting | ✅ Ready |
 | **[pig-web-ui](packages/pig-web-ui)** | v0.0.1 | Web chat interface with FastAPI | ✅ Ready |
 | **[pig-coding-agent](packages/pig-coding-agent)** | v0.0.4 | Interactive coding assistant with resilience & cost tracking | ✅ Ready |
-| **[pig-messenger](packages/pig-messenger)** | v0.0.2 | Multi-platform bot framework | ✅ Ready |
+| **[pig-messenger](packages/pig-messenger)** | v0.0.3 | Multi-platform bot framework | ✅ Ready |
 
 ---
 

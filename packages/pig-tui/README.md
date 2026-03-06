@@ -1,5 +1,8 @@
 # pig-tui
 
+[![PyPI version](https://badge.fury.io/py/pig-tui.svg)](https://badge.fury.io/py/pig-tui)
+[![Python](https://img.shields.io/pypi/pyversions/pig-tui.svg)](https://pypi.org/project/pig-tui/)
+
 Terminal UI library with rich formatting and interactive components.
 
 ## Features

@@ -1,5 +1,8 @@
 # pig-web-ui
 
+[![PyPI version](https://badge.fury.io/py/pig-web-ui.svg)](https://badge.fury.io/py/pig-web-ui)
+[![Python](https://img.shields.io/pypi/pyversions/pig-web-ui.svg)](https://pypi.org/project/pig-web-ui/)
+
 Web UI components for AI chat interfaces with FastAPI backend.
 
 ## Features

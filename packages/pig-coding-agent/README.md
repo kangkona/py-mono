@@ -1,5 +1,8 @@
 # pig-coding-agent
 
+[![PyPI version](https://badge.fury.io/py/pig-coding-agent.svg)](https://badge.fury.io/py/pig-coding-agent)
+[![Python](https://img.shields.io/pypi/pyversions/pig-coding-agent.svg)](https://pypi.org/project/pig-coding-agent/)
+
 Interactive coding agent CLI with file operations and code generation.
 
 ## Features
